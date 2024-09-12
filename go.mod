@@ -1,9 +1,9 @@
-module github.com/conductorone/baton-precipio
+module github.com/conductorone/baton-percipio
 
 go 1.22.6
 
 require (
-	github.com/conductorone/baton-sdk v0.2.27
+	github.com/conductorone/baton-sdk v0.2.28
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/spf13/viper v1.19.0
 	go.uber.org/zap v1.27.0
