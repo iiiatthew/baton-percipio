@@ -3,14 +3,14 @@ GOARCH = $(shell go env GOARCH)
 BUILD_DIR = dist/${GOOS}_${GOARCH}
 
 ifeq ($(GOOS),windows)
-OUTPUT_PATH = ${BUILD_DIR}/baton-precipio.exe
+OUTPUT_PATH = ${BUILD_DIR}/baton-percipio.exe
 else
-OUTPUT_PATH = ${BUILD_DIR}/baton-precipio
+OUTPUT_PATH = ${BUILD_DIR}/baton-percipio
 endif
 
 .PHONY: build
 build:
-	go build -o ${OUTPUT_PATH} ./cmd/baton-precipio
+	go build -o ${OUTPUT_PATH} ./cmd/baton-percipio
 
 .PHONY: update-deps
 update-deps:
