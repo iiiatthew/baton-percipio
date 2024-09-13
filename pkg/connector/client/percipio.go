@@ -15,7 +15,7 @@ const (
 	UsersListApiPath     = "/user-management/v1/organizations/%s/users"
 	CoursesListApiPath   = "/content-discovery/v2/organizations/%s/catalog-content"
 	PageSizeDefault      = 1000
-	headerNameTotalCount = "x-total-count"
+	HeaderNameTotalCount = "x-total-count"
 )
 
 type Client struct {
@@ -59,7 +59,7 @@ func New(
 // - a page of users
 // - the reported total number of users that match the filter criteria
 // - any ratelimit data
-// - an error
+// - an error.
 func (c *Client) GetUsers(
 	ctx context.Context,
 	offset int,
@@ -81,7 +81,7 @@ func (c *Client) GetUsers(
 	}
 	defer response.Body.Close()
 
-	totalString := response.Header.Get(headerNameTotalCount)
+	totalString := response.Header.Get(HeaderNameTotalCount)
 	total, err := strconv.Atoi(totalString)
 	if err != nil {
 		return nil, 0, ratelimitData, err
@@ -111,7 +111,7 @@ func (c *Client) GetCourses(
 	}
 	defer response.Body.Close()
 
-	totalString := response.Header.Get(headerNameTotalCount)
+	totalString := response.Header.Get(HeaderNameTotalCount)
 	total, err := strconv.Atoi(totalString)
 	if err != nil {
 		return nil, 0, ratelimitData, err
