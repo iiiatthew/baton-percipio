@@ -66,6 +66,12 @@ func userResource(user client.User, parentResourceID *v2.ResourceId) (*v2.Resour
 		"role":                              user.Role,
 	}
 
+	for _, attribute := range user.CustomAttributes {
+		// TODO(marcos): Should I omit fields that are nullish? What about
+		// overlapping field names?
+		profile[attribute.Name] = attribute.Value
+	}
+
 	// TODO(marcos): check that "isActive" means that the user is active.
 	status := v2.UserTrait_Status_STATUS_DISABLED
 	if user.IsActive {
@@ -166,7 +172,7 @@ func (o *userBuilder) List(
 // Entitlements always returns an empty slice for users.
 func (o *userBuilder) Entitlements(
 	_ context.Context,
-	resource *v2.Resource,
+	_ *v2.Resource,
 	_ *pagination.Token,
 ) (
 	[]*v2.Entitlement,
@@ -179,9 +185,9 @@ func (o *userBuilder) Entitlements(
 
 // Grants always returns an empty slice for users since they don't have any entitlements.
 func (o *userBuilder) Grants(
-	ctx context.Context,
-	resource *v2.Resource,
-	pToken *pagination.Token,
+	_ context.Context,
+	_ *v2.Resource,
+	_ *pagination.Token,
 ) (
 	[]*v2.Grant,
 	string,
