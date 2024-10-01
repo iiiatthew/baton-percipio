@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestUsersList(t *testing.T) {
+func TestCoursesList(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("should get users with pagination", func(t *testing.T) {
+	t.Run("should get courses with pagination", func(t *testing.T) {
 		server := test.FixturesServer()
 		defer server.Close()
 
@@ -28,7 +28,7 @@ func TestUsersList(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		c := newUserBuilder(percipioClient)
+		c := newCourseBuilder(percipioClient)
 
 		resources := make([]*v2.Resource, 0)
 		pToken := pagination.Token{

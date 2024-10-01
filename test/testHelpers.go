@@ -47,10 +47,13 @@ func FixturesServer() *httptest.Server {
 			func(writer http.ResponseWriter, request *http.Request) {
 				writer.Header().Set(uhttp.ContentType, "application/json")
 				writer.Header().Set(client.HeaderNameTotalCount, "2")
+				writer.Header().Set(client.HeaderNamePagingRequestId, "0")
 				writer.WriteHeader(http.StatusOK)
 				var filename string
 				routeUrl := request.URL.String()
 				switch {
+				case strings.Contains(routeUrl, "catalog"):
+					filename = "../../test/fixtures/courses0.json"
 				case strings.Contains(routeUrl, "users"):
 					filename = "../../test/fixtures/users0.json"
 				default:

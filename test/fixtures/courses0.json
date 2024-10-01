@@ -1,0 +1,107 @@
+[
+  {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "code": null,
+    "xapiActivityId": "https://xapi.percipio.com/xapi/video/00000000-0000-0000-0000-000000000000",
+    "xapiActivityTypeId": "https://w3id.org/xapi/video/activity-type/video",
+    "characteristics": {
+      "earnsBadge": false,
+      "hasAssessment": false,
+      "isCompliance": false
+    },
+    "contentType": {
+      "percipioType": "VIDEO",
+      "category": "VIDEO",
+      "displayLabel": "Video",
+      "source": null
+    },
+    "localeCodes": [
+      "en-US"
+    ],
+    "localizedMetadata": [
+      {
+        "localeCode": "en-US",
+        "title": "Course Overview",
+        "description": ""
+      }
+    ],
+    "lifecycle": {
+      "status": "ACTIVE",
+      "publishDate": "2020-04-02T12:24:33Z",
+      "lastUpdatedDate": "2023-10-06T23:08:23Z",
+      "plannedRetirementDate": null,
+      "retiredDate": null,
+      "includedFromActivity": false
+    },
+    "link": "https://share.percipio.com/cd/1234567890AB",
+    "aiccLaunch": null,
+    "ltiResourceLink": {
+      "url": "https://api.percipio.com/content-integration/v1/lti/launch/organizations/00000000-0000-0000-0000-000000000000/content/video/00000000-0000-0000-0000-000000000000"
+    },
+    "imageUrl": "https://cdn2.percipio.com/public/b/00000000-0000-0000-0000-000000000000/image001/modality/image001.jpg",
+    "alternateImageUrl": "https://cdn2.percipio.com/public/b/00000000-0000-0000-0000-000000000000/image001.jpg",
+    "keywords": [ ],
+    "duration": "PT1M58S",
+    "by": [
+      "Test Name"
+    ],
+    "publication": null,
+    "credentials": null,
+    "expertiseLevels": [
+      "INTERMEDIATE"
+    ],
+    "modalities": [
+      "WATCH"
+    ],
+    "technologies": [ ],
+    "associations": {
+      "areas": [
+        "Cloud Services",
+        "Microsoft"
+      ],
+      "subjects": [
+        "Cloud Platforms",
+        "Microsoft 365 Certified Associate"
+      ],
+      "channels": [
+        {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "title": "Microsoft 365 Administration",
+          "link": "https://share.percipio.com/cd/1234567890ABC"
+        },
+        {
+          "id": "00000000-0000-0000-0000-000000000000",
+          "title": "Microsoft 365 Certified: Messaging Administrator Associate",
+          "link": "https://share.percipio.com/cd/wn31cOEeEXds"
+        }
+      ],
+      "parent": {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "type": "COURSE",
+        "title": "Implementing a Hybrid and Secure Messaging Platform: Compliance",
+        "link": "https://share.percipio.com/cd/1234567890AB"
+      },
+      "translationGroupId": null,
+      "journeys": [ ],
+      "licensedLocales": "",
+      "collections": [
+        "SSExpert2_Codecademy"
+      ],
+      "skills": [
+        {
+          "skills": [
+            "ITSM Frameworks",
+            "ITSM Implementation",
+            "ITSM Design",
+            "IT Seminar Conducting",
+            "ITSM Practices"
+          ],
+          "localeCode": "en-US"
+        }
+      ]
+    },
+    "learningObjectives": [ ],
+    "providerSpecificAttributes": null,
+    "licenseKeys": null
+  }
+]
