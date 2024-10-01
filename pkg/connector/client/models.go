@@ -71,9 +71,12 @@ type Course struct {
 }
 
 type Credentials struct {
-	CpeCredits int  `json:"cpeCredits"`
+	// Continuing Professional Education credits. Possible values include 1.5.
+	CpeCredits float64 `json:"cpeCredits"`
+	// National Association of State Boards of Accountancy. Seems like a CPA thing.
 	NasbaReady bool `json:"nasbaReady"`
-	PduCredits int  `json:"pduCredits"`
+	// Professional Development Unit credits. Possible values include 0.75.
+	PduCredits float64 `json:"pduCredits"`
 }
 
 type CustomAttribute struct {

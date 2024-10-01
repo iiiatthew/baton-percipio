@@ -32,7 +32,7 @@ func (o *courseBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 func courseResource(course client.Course, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	resource0, err := resourceSdk.NewResource(
 		course.Code,
-		userResourceType,
+		courseResourceType,
 		course.Id,
 		resourceSdk.WithParentResourceID(parentResourceID),
 	)
@@ -64,7 +64,12 @@ func (o *courseBuilder) List(
 		return nil, "", nil, err
 	}
 
-	courses, total, ratelimitData, err := o.client.GetCourses(ctx, offset, limit)
+	courses, pagingRequestId, total, ratelimitData, err := o.client.GetCourses(
+		ctx,
+		offset,
+		limit,
+		pagingRequestId,
+	)
 	outputAnnotations.WithRateLimiting(ratelimitData)
 	if err != nil {
 		return nil, "", outputAnnotations, err

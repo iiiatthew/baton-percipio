@@ -87,6 +87,7 @@ func (c *Client) doRequest(
 	if err != nil {
 		return nil, nil, err
 	}
+
 	var ratelimitData v2.RateLimitDescription
 	response, err := c.wrapper.Do(
 		request,
@@ -102,7 +103,8 @@ func (c *Client) doRequest(
 		return nil, &ratelimitData, err
 	}
 
-	if err := json.Unmarshal(bodyBytes, &target); err != nil {
+	err = json.Unmarshal(bodyBytes, &target)
+	if err != nil {
 		return nil, nil, err
 	}
 
