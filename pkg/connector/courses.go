@@ -51,7 +51,7 @@ func (o *courseBuilder) List(
 	outputResources := make([]*v2.Resource, 0)
 	var outputAnnotations annotations.Annotations
 
-	offset, limit, err := parsePaginationToken(pToken)
+	offset, limit, pagingRequestId, err := client.ParsePaginationToken(pToken)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -69,7 +69,7 @@ func (o *courseBuilder) List(
 		outputResources = append(outputResources, resource0)
 	}
 
-	nextToken := getNextToken(offset, limit, total)
+	nextToken := client.GetNextToken(offset, limit, total, pagingRequestId)
 
 	return outputResources, nextToken, outputAnnotations, nil
 }

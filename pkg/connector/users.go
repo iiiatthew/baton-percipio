@@ -2,7 +2,6 @@ package connector
 
 import (
 	"context"
-	"strconv"
 	"strings"
 
 	"github.com/conductorone/baton-percipio/pkg/connector/client"
@@ -99,35 +98,6 @@ func userResource(user client.User, parentResourceID *v2.ResourceId) (*v2.Resour
 	return userResource0, nil
 }
 
-// parsePaginationToken - takes as pagination token and returns offset and limit in that order.
-func parsePaginationToken(pToken *pagination.Token) (int, int, error) {
-	var limit = client.PageSizeDefault
-	var offset = 0
-
-	if pToken != nil {
-		if pToken.Size > 0 {
-			limit = pToken.Size
-		}
-
-		if pToken.Token != "" {
-			parsedOffset, err := strconv.Atoi(pToken.Token)
-			if err != nil {
-				return 0, 0, err
-			}
-			offset = parsedOffset
-		}
-	}
-	return offset, limit, nil
-}
-
-func getNextToken(offset int, limit int, total int) string {
-	nextOffset := offset + limit
-	if nextOffset >= total {
-		return ""
-	}
-	return strconv.Itoa(nextOffset)
-}
-
 // List returns all the users from the database as resource objects.
 // Users include a UserTrait because they are the 'shape' of a standard user.
 func (o *userBuilder) List(
@@ -146,7 +116,7 @@ func (o *userBuilder) List(
 	outputResources := make([]*v2.Resource, 0)
 	var outputAnnotations annotations.Annotations
 
-	offset, limit, err := parsePaginationToken(pToken)
+	offset, limit, _, err := client.ParsePaginationToken(pToken)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -164,7 +134,7 @@ func (o *userBuilder) List(
 		outputResources = append(outputResources, userResource0)
 	}
 
-	nextToken := getNextToken(offset, limit, total)
+	nextToken := client.GetNextToken(offset, limit, total, "")
 
 	return outputResources, nextToken, outputAnnotations, nil
 }
