@@ -61,6 +61,26 @@ func (c *Client) get(
 	)
 }
 
+func (c *Client) post(
+	ctx context.Context,
+	path string,
+	body interface{},
+	target interface{},
+) (
+	*http.Response,
+	*v2.RateLimitDescription,
+	error,
+) {
+	return c.doRequest(
+		ctx,
+		http.MethodPost,
+		path,
+		nil,
+		body,
+		&target,
+	)
+}
+
 func (c *Client) doRequest(
 	ctx context.Context,
 	method string,
