@@ -2,14 +2,22 @@ package connector
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/conductorone/baton-percipio/pkg/connector/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
+	"github.com/conductorone/baton-sdk/pkg/types/entitlement"
 	resourceSdk "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
+)
+
+const (
+	assignedEntitlement   = "assigned"
+	completedEntitlement  = "completed"
+	inProgressEntitlement = "in_progress"
 )
 
 type courseBuilder struct {
@@ -74,7 +82,6 @@ func (o *courseBuilder) List(
 	return outputResources, nextToken, outputAnnotations, nil
 }
 
-// Entitlements always returns an empty slice for users.
 func (o *courseBuilder) Entitlements(
 	_ context.Context,
 	resource *v2.Resource,
@@ -85,7 +92,29 @@ func (o *courseBuilder) Entitlements(
 	annotations.Annotations,
 	error,
 ) {
-	return nil, "", nil, nil
+	return []*v2.Entitlement{
+		entitlement.NewAssignmentEntitlement(
+			resource,
+			assignedEntitlement,
+			entitlement.WithGrantableTo(userResourceType),
+			entitlement.WithDisplayName(fmt.Sprintf("Course %s %s", resource.DisplayName, assignedEntitlement)),
+			entitlement.WithDescription(fmt.Sprintf("Assigned course %s in Percipio", resource.DisplayName)),
+		),
+		entitlement.NewAssignmentEntitlement(
+			resource,
+			completedEntitlement,
+			entitlement.WithGrantableTo(userResourceType),
+			entitlement.WithDisplayName(fmt.Sprintf("Course %s %s", resource.DisplayName, completedEntitlement)),
+			entitlement.WithDescription(fmt.Sprintf("Completed course %s in Percipio", resource.DisplayName)),
+		),
+		entitlement.NewAssignmentEntitlement(
+			resource,
+			inProgressEntitlement,
+			entitlement.WithGrantableTo(userResourceType),
+			entitlement.WithDisplayName(fmt.Sprintf("Course %s %s", resource.DisplayName, inProgressEntitlement)),
+			entitlement.WithDescription(fmt.Sprintf("In progress course %s in Percipio", resource.DisplayName)),
+		),
+	}, "", nil, nil
 }
 
 // Grants always returns an empty slice for users since they don't have any entitlements.
