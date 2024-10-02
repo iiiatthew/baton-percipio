@@ -1,21 +1,21 @@
 version: 2
-project_name: baton-precipio
+project_name: baton-percipio
 builds:
-  - binary: baton-precipio
+  - binary: baton-percipio
     env:
       - CGO_ENABLED=0
     id: linux
-    main: ./cmd/baton-precipio
+    main: ./cmd/baton-percipio
     goos:
       - linux
     goarch:
       - amd64
       - arm64
-  - binary: baton-precipio
+  - binary: baton-percipio
     env:
       - CGO_ENABLED=0
     id: macos-amd64
-    main: ./cmd/baton-precipio
+    main: ./cmd/baton-percipio
     goos:
       - darwin
     goarch:
@@ -23,12 +23,12 @@ builds:
     hooks:
       post:
         - gon .gon-amd64.json
-        - mv dist/baton-precipio-darwin-amd64.signed.zip dist/macos-amd64_darwin_amd64_v1/baton-precipio
-  - binary: baton-precipio
+        - mv dist/baton-percipio-darwin-amd64.signed.zip dist/macos-amd64_darwin_amd64_v1/baton-percipio
+  - binary: baton-percipio
     env:
       - CGO_ENABLED=0
     id: macos-arm64
-    main: ./cmd/baton-precipio
+    main: ./cmd/baton-percipio
     goos:
       - darwin
     goarch:
@@ -36,7 +36,7 @@ builds:
     hooks:
       post:
         - gon .gon-arm64.json
-        - mv dist/baton-precipio-darwin-arm64.signed.zip dist/macos-arm64_darwin_arm64/baton-precipio
+        - mv dist/baton-percipio-darwin-arm64.signed.zip dist/macos-arm64_darwin_arm64/baton-percipio
 archives:
   - id: linux-archive
     builds:
@@ -72,9 +72,9 @@ brews:
     directory: Formula
     homepage: https://conductorone.com
     test: |
-      system "#{bin}/baton-precipio -v"
+      system "#{bin}/baton-percipio -v"
     install: |-
-      bin.install "baton-precipio"
+      bin.install "baton-percipio"
 changelog:
   filters:
     exclude:

@@ -1,17 +1,29 @@
 package main
 
 import (
-	"context"
-
 	"github.com/conductorone/baton-sdk/pkg/field"
 	"github.com/spf13/viper"
 )
 
 var (
+	ApiTokenField = field.StringField(
+		"api-token",
+		field.WithDescription("The Percipio Bearer Token"),
+		field.WithRequired(true),
+	)
+	OrganizationIdField = field.StringField(
+		"organization-id",
+		field.WithDescription("The Percipio Organization ID"),
+		field.WithRequired(true),
+	)
+
 	// ConfigurationFields defines the external configuration required for the
 	// connector to run. Note: these fields can be marked as optional or
 	// required.
-	ConfigurationFields = []field.SchemaField{}
+	ConfigurationFields = []field.SchemaField{
+		ApiTokenField,
+		OrganizationIdField,
+	}
 
 	// FieldRelationships defines relationships between the fields listed in
 	// ConfigurationFields that can be automatically validated. For example, a
@@ -24,6 +36,6 @@ var (
 // error if it isn't valid. Implementing this function is optional, it only
 // needs to perform extra validations that cannot be encoded with configuration
 // parameters.
-func ValidateConfig(ctx context.Context, v *viper.Viper) error {
+func ValidateConfig(v *viper.Viper) error {
 	return nil
 }

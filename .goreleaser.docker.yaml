@@ -1,11 +1,11 @@
 version: 2
-project_name: baton-precipio
+project_name: baton-percipio
 builds:
-  - binary: baton-precipio
+  - binary: baton-percipio
     env:
       - CGO_ENABLED=0
     id: linux
-    main: ./cmd/baton-precipio
+    main: ./cmd/baton-percipio
     goos:
       - linux
     goarch:
@@ -16,37 +16,37 @@ dockers:
     goos: linux
     goarch: amd64
     image_templates:
-      - "ghcr.io/conductorone/baton-precipio:{{ .Version }}-amd64"
-      - "ghcr.io/conductorone/baton-precipio:latest-amd64"
+      - "ghcr.io/conductorone/baton-percipio:{{ .Version }}-amd64"
+      - "ghcr.io/conductorone/baton-percipio:latest-amd64"
     build_flag_templates:
       - "--platform=linux/amd64"
       - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title=baton-precipio"
+      - "--label=org.opencontainers.image.title=baton-percipio"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--label=org.opencontainers.image.source=https://github.com/conductorone/baton-precipio"
+      - "--label=org.opencontainers.image.source=https://github.com/conductorone/baton-percipio"
   - use: buildx
     goos: linux
     goarch: arm64
     image_templates:
-      - "ghcr.io/conductorone/baton-precipio:{{ .Version }}-arm64"
-      - "ghcr.io/conductorone/baton-precipio:latest-arm64"
+      - "ghcr.io/conductorone/baton-percipio:{{ .Version }}-arm64"
+      - "ghcr.io/conductorone/baton-percipio:latest-arm64"
     build_flag_templates:
       - "--platform=linux/arm64/v8"
       - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title=baton-precipio"
+      - "--label=org.opencontainers.image.title=baton-percipio"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--label=org.opencontainers.image.source=https://github.com/conductorone/baton-precipio"
+      - "--label=org.opencontainers.image.source=https://github.com/conductorone/baton-percipio"
 docker_manifests:
-  - name_template: ghcr.io/conductorone/baton-precipio:{{ .Version }}
+  - name_template: ghcr.io/conductorone/baton-percipio:{{ .Version }}
     image_templates:
-      - ghcr.io/conductorone/baton-precipio:{{ .Version }}-amd64
-      - ghcr.io/conductorone/baton-precipio:{{ .Version }}-arm64
-  - name_template: ghcr.io/conductorone/baton-precipio:latest
+      - ghcr.io/conductorone/baton-percipio:{{ .Version }}-amd64
+      - ghcr.io/conductorone/baton-percipio:{{ .Version }}-arm64
+  - name_template: ghcr.io/conductorone/baton-percipio:latest
     image_templates:
-      - ghcr.io/conductorone/baton-precipio:latest-amd64
-      - ghcr.io/conductorone/baton-precipio:latest-arm64
+      - ghcr.io/conductorone/baton-percipio:latest-amd64
+      - ghcr.io/conductorone/baton-percipio:latest-arm64
 checksum:
   disable: true
 release:

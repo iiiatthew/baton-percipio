@@ -1,0 +1,127 @@
+[
+  {
+    "id": "00000000-0000-0000-0000-000000000001",
+    "externalUserId": "first.last@example.com",
+    "email": "first.last@example.com",
+    "isActive": true,
+    "loginName": null,
+    "firstName": "First",
+    "lastName": "Last",
+    "role": "LEARNER",
+    "updatedAt": "2024-04-17T09:55:22.173000Z",
+    "customAttributes": [
+      {
+        "id": "291c7401-8951-4177-942d-da2fc7e9da1a",
+        "name": "Business Unit",
+        "value": null
+      },
+      {
+        "id": "d0428283-1961-441b-8bd2-af9ae8452a3a",
+        "name": "Cost Center Code",
+        "value": null
+      },
+      {
+        "id": "80c50be7-ee09-4cb2-bb1f-af963993e2ca",
+        "name": "Country Name",
+        "value": "IND"
+      },
+      {
+        "id": "f5ca5ed9-77ac-4e11-a2e0-89a0d1084d75",
+        "name": "Department Code",
+        "value": null
+      },
+      {
+        "id": "c30bb7d2-211b-4dc5-8143-957d24a7b64a",
+        "name": "Department Owner",
+        "value": null
+      },
+      {
+        "id": "91165675-7c48-419f-aa48-767d34768aa7",
+        "name": "Dept Name",
+        "value": "Engineering"
+      },
+      {
+        "id": "cfa69b92-94f6-4775-b6c5-3e8fd73bee73",
+        "name": "Direct Manager Name",
+        "value": "manager@example.com"
+      },
+      {
+        "id": "47839d76-4ad4-4bde-9767-f3882074cc44",
+        "name": "Division",
+        "value": null
+      },
+      {
+        "id": "5ad5221d-c503-4503-9263-d548dd3f2d53",
+        "name": "Division Code",
+        "value": null
+      },
+      {
+        "id": "97147dd9-2989-4628-bf06-051d30c37a17",
+        "name": "Divison Owner",
+        "value": null
+      },
+      {
+        "id": "1f0076cb-d65a-4295-8827-11aabcb225f9",
+        "name": "Employee Class",
+        "value": "FT"
+      },
+      {
+        "id": "7696ffb9-cf61-4cc4-8027-11ba5e9ffad5",
+        "name": "Employee ID",
+        "value": "Z31008"
+      },
+      {
+        "id": "51fb5f5a-c7a7-4096-b6f9-b9b1a9ce6d43",
+        "name": "Geo",
+        "value": "APJ"
+      },
+      {
+        "id": "e8d552c8-0e61-44ef-b999-2322f5f56b51",
+        "name": "Hire Date",
+        "value": "2023-09-01"
+      },
+      {
+        "id": "ceeba6a0-bd96-4153-a498-421e6d1cc942",
+        "name": "HRBP Owner",
+        "value": null
+      },
+      {
+        "id": "904e2ee4-83de-46a7-9bc4-a0b6a47641c6",
+        "name": "Is a Manager",
+        "value": "No"
+      },
+      {
+        "id": "c372566e-8943-40dd-b1bd-3ef088404ff6",
+        "name": "Job Function",
+        "value": "R&D"
+      },
+      {
+        "id": "83fc540e-751d-4cab-817e-6ee936c8ce17",
+        "name": "Manager Email",
+        "value": null
+      },
+      {
+        "id": "527d66f5-ac1e-4175-b28d-127f7db7e754",
+        "name": "Manager ID",
+        "value": "Z10002"
+      },
+      {
+        "id": "8fd1104b-c3ba-4551-a42a-c41430d00e1c",
+        "name": "Sub Department",
+        "value": null
+      },
+      {
+        "id": "bf562722-f2b4-4ece-8659-edc6d4007f65",
+        "name": "Sub Department Code",
+        "value": null
+      }
+    ],
+    "jobTitle": null,
+    "jobRole": null,
+    "approvalManager": { },
+    "directHrManager": { },
+    "isInstructor": false,
+    "hasCoaching": false,
+    "hasEnterpriseCoaching": false
+  }
+]

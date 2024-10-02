@@ -1,3 +1,3 @@
 FROM gcr.io/distroless/static-debian11:nonroot
-ENTRYPOINT ["/baton-precipio"]
-COPY baton-precipio /
+ENTRYPOINT ["/baton-percipio"]
+COPY baton-percipio /
