@@ -2,9 +2,7 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	liburl "net/url"
 	"strconv"
@@ -112,21 +110,12 @@ func (c *Client) doRequest(
 	response, err := c.wrapper.Do(
 		request,
 		uhttp.WithRatelimitData(&ratelimitData),
+		uhttp.WithJSONResponse(target),
 	)
 	if err != nil {
 		return nil, &ratelimitData, err
 	}
 	defer response.Body.Close()
-
-	bodyBytes, err := io.ReadAll(response.Body)
-	if err != nil {
-		return nil, &ratelimitData, err
-	}
-
-	err = json.Unmarshal(bodyBytes, &target)
-	if err != nil {
-		return nil, nil, err
-	}
 
 	return response, &ratelimitData, nil
 }

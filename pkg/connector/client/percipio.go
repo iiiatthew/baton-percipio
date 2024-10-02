@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 	"time"
@@ -58,12 +59,17 @@ func New(
 		return nil, err
 	}
 
+	wrapper, err := uhttp.NewBaseHttpClientWithContext(ctx, httpClient)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
 		StatusesStore:  make(map[string]map[string]string),
 		baseUrl:        parsedUrl,
 		bearerToken:    token,
 		organizationId: organizationId,
-		wrapper:        uhttp.NewBaseHttpClient(httpClient),
+		wrapper:        wrapper,
 	}, nil
 }
 
@@ -158,9 +164,9 @@ func (c *Client) GenerateLearningActivityReport(
 ) {
 	now := time.Now()
 	body := ReportConfigurations{
-		Start: now.Add(-ReportLookBackDefault),
 		End:   now,
-		// TODO MARCOS 1 pick default configurations.
+		Start: now.Add(-ReportLookBackDefault),
+		// TODO(marcos): pick better default configurations.
 	}
 
 	var target ReportStatus
