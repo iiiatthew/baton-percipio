@@ -156,7 +156,7 @@ func (o *courseBuilder) Grants(
 		}
 	}
 
-	statusesMap := o.client.Cache.Get(resource.Id.Resource)
+	statusesMap := o.client.StatusesStore.Get(resource.Id.Resource)
 
 	grants := make([]*v2.Grant, 0)
 	for userId, status := range statusesMap {

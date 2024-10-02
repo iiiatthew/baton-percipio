@@ -30,7 +30,7 @@ const (
 type Client struct {
 	baseUrl        *url.URL
 	bearerToken    string
-	Cache          StatusesStore
+	StatusesStore  StatusesStore
 	organizationId string
 	ReportStatus   ReportStatus
 	wrapper        *uhttp.BaseHttpClient
@@ -59,7 +59,7 @@ func New(
 	}
 
 	return &Client{
-		Cache:          make(map[string]map[string]string),
+		StatusesStore:  make(map[string]map[string]string),
 		baseUrl:        parsedUrl,
 		bearerToken:    token,
 		organizationId: organizationId,
@@ -229,7 +229,7 @@ func (c *Client) GetLearningActivityReport(
 	}
 
 	c.ReportStatus.Status = "done"
-	err := c.Cache.Load(&target)
+	err := c.StatusesStore.Load(&target)
 	if err != nil {
 		return nil, err
 	}
