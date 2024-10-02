@@ -67,6 +67,11 @@ func New(
 	}, nil
 }
 
+func getTotalCount(response *http.Response) (int, error) {
+	totalString := response.Header.Get(HeaderNameTotalCount)
+	return strconv.Atoi(totalString)
+}
+
 // GetUsers returns
 // - a page of users
 // - the reported total number of users that match the filter criteria
@@ -93,12 +98,10 @@ func (c *Client) GetUsers(
 	}
 	defer response.Body.Close()
 
-	totalString := response.Header.Get(HeaderNameTotalCount)
-	total, err := strconv.Atoi(totalString)
+	total, err := getTotalCount(response)
 	if err != nil {
 		return nil, 0, ratelimitData, err
 	}
-
 	return target, total, ratelimitData, nil
 }
 
@@ -135,13 +138,12 @@ func (c *Client) GetCourses(
 	}
 	defer response.Body.Close()
 
-	totalString := response.Header.Get(HeaderNameTotalCount)
-	total, err := strconv.Atoi(totalString)
+	pagingRequestId = response.Header.Get(HeaderNamePagingRequestId)
+	total, err := getTotalCount(response)
 	if err != nil {
 		return nil, "", 0, ratelimitData, err
 	}
 
-	pagingRequestId = response.Header.Get(HeaderNamePagingRequestId)
 	return target, pagingRequestId, total, ratelimitData, nil
 }
 
