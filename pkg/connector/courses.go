@@ -9,6 +9,7 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	"github.com/conductorone/baton-sdk/pkg/types/entitlement"
+	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	resourceSdk "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
@@ -122,18 +123,52 @@ func (o *courseBuilder) Entitlements(
 	}, "", nil, nil
 }
 
-// Grants always returns an empty slice for users since they don't have any entitlements.
+// Grants we have to do a pretty complicated set of maneuvers here to fetch
+// grants. First, we need to POST a request to the "generate report" endpoint,
+// which returns a UUID that we can use to interpolate a URL where the report
+// will appear. From there we have to _poll_ that endpoint until it states that
+// the report is ready. Finally, we need to store the data (which can be on the
+// order of 1 GB) in memory so that we can find grants for a given resource.
 func (o *courseBuilder) Grants(
 	ctx context.Context,
 	resource *v2.Resource,
-	pToken *pagination.Token,
+	_ *pagination.Token,
 ) (
 	[]*v2.Grant,
 	string,
 	annotations.Annotations,
 	error,
 ) {
-	return nil, "", nil, nil
+	var outputAnnotations annotations.Annotations
+	if o.client.ReportStatus.Status == "" {
+		ratelimitData, err := o.client.GenerateLearningActivityReport(ctx)
+		outputAnnotations.WithRateLimiting(ratelimitData)
+		if err != nil {
+			return nil, "", outputAnnotations, err
+		}
+	}
+
+	if o.client.ReportStatus.Status == "pending" {
+		ratelimitData, err := o.client.GetLearningActivityReport(ctx)
+		outputAnnotations.WithRateLimiting(ratelimitData)
+		if err != nil {
+			return nil, "", outputAnnotations, err
+		}
+	}
+
+	statusesMap := o.client.Cache.Get(resource.Id.Resource)
+
+	grants := make([]*v2.Grant, 0)
+	for userId, status := range statusesMap {
+		principalId, err := resourceSdk.NewResourceID(userResourceType, userId)
+		if err != nil {
+			return nil, "", outputAnnotations, err
+		}
+		nextGrant := grant.NewGrant(resource, status, principalId)
+		grants = append(grants, nextGrant)
+	}
+
+	return grants, "", outputAnnotations, nil
 }
 
 func newCourseBuilder(client *client.Client) *courseBuilder {

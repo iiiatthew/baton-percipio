@@ -7,7 +7,7 @@ import (
 )
 
 type Pagination struct {
-	pagingRequestId string `json:"pagingRequestId"`
+	PagingRequestId string `json:"pagingRequestId"`
 	Offset          int    `json:"offset"`
 }
 
@@ -37,7 +37,7 @@ func ParsePaginationToken(pToken *pagination.Token) (
 				return 0, 0, "", err
 			}
 			offset = parsed.Offset
-			pagingRequestId = parsed.pagingRequestId
+			pagingRequestId = parsed.PagingRequestId
 		}
 	}
 	return offset, limit, pagingRequestId, nil
@@ -59,7 +59,7 @@ func GetNextToken(
 	bytes, err := json.Marshal(
 		Pagination{
 			Offset:          nextOffset,
-			pagingRequestId: pagingRequestId,
+			PagingRequestId: pagingRequestId,
 		},
 	)
 	if err != nil {

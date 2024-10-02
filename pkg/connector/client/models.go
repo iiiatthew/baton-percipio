@@ -133,6 +133,87 @@ type Publication struct {
 	Publisher     string `json:"publisher"`
 }
 
+type Report []ReportEntry
+
+type ReportConfigurations struct {
+	Audience                string               `json:"audience,omitempty"`
+	ContentType             string               `json:"contentType,omitempty"`
+	CsvPreferences          ReportCsvPreferences `json:"csvPreferences,omitempty"`
+	Encrypt                 bool                 `json:"encrypt,omitempty"`
+	End                     time.Time            `json:"end,omitempty"`
+	FileMask                string               `json:"fileMask,omitempty"`
+	FolderName              string               `json:"folderName,omitempty"`
+	FormatType              string               `json:"formatType,omitempty"`
+	IncludeMillisInFilename bool                 `json:"includeMillisInFilename,omitempty"`
+	IsFileRequiredInSftp    bool                 `json:"isFileRequiredInSftp,omitempty"`
+	IsPgpFileExtnNotReqrd   bool                 `json:"isPgpFileExtnNotReqrd,omitempty"`
+	Locale                  string               `json:"locale,omitempty"`
+	Mapping                 string               `json:"mapping,omitempty"`
+	Plugin                  string               `json:"plugin,omitempty"`
+	SftpId                  string               `json:"sftpId,omitempty"`
+	Sort                    ReportSort           `json:"sort,omitempty"`
+	Start                   time.Time            `json:"start,omitempty"`
+	Status                  string               `json:"status,omitempty"`
+	Template                string               `json:"template,omitempty"`
+	TimeFrame               string               `json:"timeFrame,omitempty"`
+	TransformName           string               `json:"transformName,omitempty"`
+	Zip                     bool                 `json:"zip,omitempty"`
+}
+
+type ReportCsvPreferences struct {
+	ColumnDelimiter    string `json:"columnDelimiter"`
+	Header             bool   `json:"header"`
+	HeaderForNoRecords bool   `json:"headerForNoRecords"`
+	RowDelimiter       string `json:"rowDelimiter"`
+}
+
+type ReportEntry struct {
+	Audience             string    `json:"audience"`
+	BusinessUnit         string    `json:"businessUnit"`
+	CompletedDate        time.Time `json:"completedDate"`
+	ContentTitle         string    `json:"contentTitle"`
+	ContentType          string    `json:"contentType"`
+	ContentUUID          string    `json:"contentUuid"`
+	CostCenterCode       string    `json:"costCenterCode"`
+	CountryName          string    `json:"countryName"`
+	DepartmentCode       string    `json:"departmentCode"`
+	DepartmentOwner      string    `json:"departmentOwner"`
+	DeptName             string    `json:"deptName"`
+	DirectManagerName    string    `json:"directManagerName"`
+	Division             string    `json:"division"`
+	DivisionCode         string    `json:"divisionCode"`
+	DivisionOwner        string    `json:"divisonOwner"` // [SIC]
+	DurationHms          string    `json:"durationHms"`
+	EmailAddress         string    `json:"emailAddress"`
+	EmployeeClass        string    `json:"employeeClass"`
+	EmployeeId           string    `json:"employeeId"`
+	EstimatedDurationHms string    `json:"estimatedDurationHms"`
+	FirstAccess          time.Time `json:"firstAccess"`
+	FirstName            string    `json:"firstName"`
+	Geo                  string    `json:"geo"`
+	HireDate             string    `json:"hireDate"`
+	HrbpOwner            string    `json:"hrbpOwner"`
+	IsAManager           string    `json:"isAManager"`
+	LanguageCode         string    `json:"languageCode"`
+	LastName             string    `json:"lastName"`
+	ManagerEmail         string    `json:"managerEmail"`
+	ManagerId            string    `json:"managerId"`
+	Status               string    `json:"status"`
+	UserId               string    `json:"userId"`
+	UserStatus           string    `json:"userStatus"`
+	UserUUID             string    `json:"userUuid"`
+}
+
+type ReportSort struct {
+	Field string `json:"field"`
+	Order string `json:"order"`
+}
+
+type ReportStatus struct {
+	Id     string `json:"id"`
+	Status string `json:"status"`
+}
+
 type Skill struct {
 	LocaleCode string   `json:"localeCode"`
 	Skills     []string `json:"skills"`
