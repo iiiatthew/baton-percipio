@@ -43,8 +43,9 @@ func ParsePaginationToken(pToken *pagination.Token) (
 	return offset, limit, pagingRequestId, nil
 }
 
-// GetNextToken given a limit/offset, `pagingRequestId` and total number of
-// resources, return the next pagination token as a string.
+// GetNextToken given a limit, offset, and `pagingRequestId` that were used to
+// fetch _this_ page of data, and total number of resources, return the next
+// pagination token as a string.
 func GetNextToken(
 	offset int,
 	limit int,
