@@ -229,7 +229,7 @@ func (c *Client) GetLearningActivityReport(
 	}
 
 	c.ReportStatus.Status = "done"
-	err := c.Cache.Load(target)
+	err := c.Cache.Load(&target)
 	if err != nil {
 		return nil, err
 	}
