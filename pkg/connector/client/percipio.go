@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/conductorone/baton-percipio/pkg/config"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
@@ -23,9 +24,7 @@ const (
 	HeaderNamePagingRequestId     = "x-paging-request-id"
 	HeaderNameTotalCount          = "x-total-count"
 	PageSizeDefault               = 1000
-	RetryAttemptsMaximum          = 1000
 	ReportLookBackDefault         = 10 * time.Hour * 24 * 365 // 10 years
-	RetryAfterDefault             = 10 * time.Second          // 10 seconds
 )
 
 type Client struct {
@@ -198,7 +197,7 @@ func (c *Client) GetLearningActivityReport(
 		target        Report
 	)
 
-	for i := 0; i < RetryAttemptsMaximum; i++ {
+	for i := 0; i < config.RetryAttemptsMaximum; i++ {
 		// While the report is still processing, we get this ReportStatus
 		// object. Once we actually get data, it'll return an array of rows.
 		response, ratelimitData0, err := c.get(
@@ -227,7 +226,7 @@ func (c *Client) GetLearningActivityReport(
 				return nil, err
 			}
 
-			time.Sleep(RetryAfterDefault)
+			time.Sleep(config.RetryAfterSeconds * time.Second)
 			continue
 		}
 
