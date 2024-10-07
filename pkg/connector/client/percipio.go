@@ -3,7 +3,9 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -13,6 +15,7 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"go.uber.org/zap"
 )
 
 const (
@@ -197,6 +200,7 @@ func (c *Client) GetLearningActivityReport(
 		target        Report
 	)
 
+	l := ctxzap.Extract(ctx)
 	for i := 0; i < config.RetryAttemptsMaximum; i++ {
 		// While the report is still processing, we get this ReportStatus
 		// object. Once we actually get data, it'll return an array of rows.
@@ -209,23 +213,32 @@ func (c *Client) GetLearningActivityReport(
 		)
 		ratelimitData = ratelimitData0
 		if err != nil {
-			if response == nil {
-				return nil, fmt.Errorf("got no response")
-			}
 			// If we got an error unmarshalling, it might be because the report
 			// is still being generated. If that's the case, try unmarshalling
 			// with the expected shape.
-			var bodyBytes []byte
-			_, err := response.Body.Read(bodyBytes)
+			jsonError := new(json.UnmarshalTypeError)
+			if !errors.As(err, &jsonError) {
+				return ratelimitData, err
+			}
+			if response == nil {
+				return nil, fmt.Errorf("got no response: %w", err)
+			}
+			bodyBytes, err := io.ReadAll(response.Body)
 			if err != nil {
 				return nil, err
 			}
 
 			err = json.Unmarshal(bodyBytes, &c.ReportStatus)
 			if err != nil {
+				l.Error("error unmarshalling report status", zap.Error(err), zap.String("body", string(bodyBytes)))
 				return nil, err
 			}
 
+			l.Debug("report status",
+				zap.String("status", c.ReportStatus.Status),
+				zap.Int("attempt", i),
+				zap.Int("retry_after_seconds", config.RetryAfterSeconds),
+				zap.Int("retry_attempts_maximum", config.RetryAttemptsMaximum))
 			time.Sleep(config.RetryAfterSeconds * time.Second)
 			continue
 		}

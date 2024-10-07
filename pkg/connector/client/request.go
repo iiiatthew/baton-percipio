@@ -113,7 +113,7 @@ func (c *Client) doRequest(
 		uhttp.WithJSONResponse(target),
 	)
 	if err != nil {
-		return nil, &ratelimitData, err
+		return response, &ratelimitData, err
 	}
 	defer response.Body.Close()
 
