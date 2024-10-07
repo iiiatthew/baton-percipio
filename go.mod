@@ -3,7 +3,7 @@ module github.com/conductorone/baton-percipio
 go 1.22.6
 
 require (
-	github.com/conductorone/baton-sdk v0.2.33
+	github.com/conductorone/baton-sdk v0.2.35
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
