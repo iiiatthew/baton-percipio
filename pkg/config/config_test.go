@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"testing"
@@ -43,5 +43,5 @@ func TestConfigs(t *testing.T) {
 		},
 	}
 
-	test.ExerciseTestCases(t, configurationSchema, ValidateConfig, testCases)
+	test.ExerciseTestCases(t, configurationSchema, nil, testCases)
 }

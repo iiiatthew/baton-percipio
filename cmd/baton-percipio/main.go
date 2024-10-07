@@ -5,28 +5,29 @@ import (
 	"fmt"
 	"os"
 
+	config2 "github.com/conductorone/baton-percipio/pkg/config"
 	"github.com/conductorone/baton-percipio/pkg/connector"
 	"github.com/conductorone/baton-sdk/pkg/config"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
-	"github.com/conductorone/baton-sdk/pkg/field"
 	"github.com/conductorone/baton-sdk/pkg/types"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
-var version = "dev"
+var (
+	connectorName = "baton-percipio"
+	version       = "dev"
+)
 
 func main() {
 	ctx := context.Background()
 
 	_, cmd, err := config.DefineConfiguration(
 		ctx,
-		"baton-percipio",
+		connectorName,
 		getConnector,
-		field.Configuration{
-			Fields: ConfigurationFields,
-		},
+		config2.ConfigurationSchema,
 	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
@@ -44,14 +45,10 @@ func main() {
 
 func getConnector(ctx context.Context, v *viper.Viper) (types.ConnectorServer, error) {
 	l := ctxzap.Extract(ctx)
-	if err := ValidateConfig(v); err != nil {
-		return nil, err
-	}
-
 	cb, err := connector.New(
 		ctx,
-		v.GetString(OrganizationIdField.FieldName),
-		v.GetString(ApiTokenField.FieldName),
+		v.GetString(config2.OrganizationIdField.FieldName),
+		v.GetString(config2.ApiTokenField.FieldName),
 	)
 	if err != nil {
 		l.Error("error creating connector", zap.Error(err))
