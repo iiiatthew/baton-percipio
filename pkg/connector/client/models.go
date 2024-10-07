@@ -161,10 +161,10 @@ type ReportConfigurations struct {
 }
 
 type ReportCsvPreferences struct {
-	ColumnDelimiter    string `json:"columnDelimiter"`
-	Header             bool   `json:"header"`
-	HeaderForNoRecords bool   `json:"headerForNoRecords"`
-	RowDelimiter       string `json:"rowDelimiter"`
+	ColumnDelimiter    string `json:"columnDelimiter,omitempty"`
+	Header             bool   `json:"header,omitempty"`
+	HeaderForNoRecords bool   `json:"headerForNoRecords,omitempty"`
+	RowDelimiter       string `json:"rowDelimiter,omitempty"`
 }
 
 type ReportEntry struct {
@@ -205,13 +205,14 @@ type ReportEntry struct {
 }
 
 type ReportSort struct {
-	Field string `json:"field"`
-	Order string `json:"order"`
+	Field string `json:"field,omitempty"`
+	Order string `json:"order,omitempty"`
 }
 
 type ReportStatus struct {
 	Id     string `json:"id"`
 	Status string `json:"status"`
+	Error  string `json:"error,omitempty"`
 }
 
 type Skill struct {
