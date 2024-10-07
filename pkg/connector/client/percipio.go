@@ -239,6 +239,9 @@ func (c *Client) GetLearningActivityReport(
 				zap.Int("attempt", i),
 				zap.Int("retry_after_seconds", config.RetryAfterSeconds),
 				zap.Int("retry_attempts_maximum", config.RetryAttemptsMaximum))
+			if c.ReportStatus.Status == "FAILED" {
+				return nil, fmt.Errorf("report generation failed: %v", c.ReportStatus)
+			}
 			time.Sleep(config.RetryAfterSeconds * time.Second)
 			continue
 		}
