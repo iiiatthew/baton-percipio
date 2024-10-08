@@ -265,7 +265,7 @@ func (c *Client) GetLearningActivityReport(
 	}
 
 	c.ReportStatus.Status = "done"
-	l.Debug("loading report", zap.Any("report", target))
+	l.Debug("loading report")
 	err := c.StatusesStore.Load(&target)
 	if err != nil {
 		return ratelimitData, err
