@@ -209,52 +209,60 @@ func (c *Client) GetLearningActivityReport(
 			// Punt setting `organizationId`, it is added in `doRequest()`.
 			fmt.Sprintf(ApiPathReport, "%s", c.ReportStatus.Id),
 			nil,
-			&target,
+			// Don't use response body because Percipio's API closes connections early and returns EOF sometimes.
+			nil,
 		)
 		ratelimitData = ratelimitData0
 		if err != nil {
-			// If we got an error unmarshalling, it might be because the report
-			// is still being generated. If that's the case, try unmarshalling
-			// with the expected shape.
-			jsonError := new(json.UnmarshalTypeError)
-			if !errors.As(err, &jsonError) {
+			l.Error("error getting report", zap.Error(err))
+			// Ignore unexpected EOF because Precipio returns this on success sometimes
+			if !errors.Is(err, io.ErrUnexpectedEOF) {
 				return ratelimitData, err
 			}
-			if response == nil {
-				return nil, fmt.Errorf("got no response: %w", err)
-			}
-			bodyBytes, err := io.ReadAll(response.Body)
-			if err != nil {
-				return nil, err
-			}
+		}
+		if response == nil {
+			return ratelimitData, fmt.Errorf("no response from precipio api")
+		}
 
-			err = json.Unmarshal(bodyBytes, &c.ReportStatus)
-			if err != nil {
-				l.Error("error unmarshalling report status", zap.Error(err), zap.String("body", string(bodyBytes)))
-				return nil, err
-			}
+		defer response.Body.Close()
+		bodyBytes, err := io.ReadAll(response.Body)
+		if err != nil {
+			return ratelimitData, err
+		}
 
+		// Response can be a report status if the report isn't done processing, or the report. Try status first.
+		err = json.Unmarshal(bodyBytes, &c.ReportStatus)
+		if err == nil {
 			l.Debug("report status",
 				zap.String("status", c.ReportStatus.Status),
 				zap.Int("attempt", i),
 				zap.Int("retry_after_seconds", config.RetryAfterSeconds),
 				zap.Int("retry_attempts_maximum", config.RetryAttemptsMaximum))
 			if c.ReportStatus.Status == "FAILED" {
-				return nil, fmt.Errorf("report generation failed: %v", c.ReportStatus)
+				return ratelimitData, fmt.Errorf("report generation failed: %v", c.ReportStatus)
 			}
 			time.Sleep(config.RetryAfterSeconds * time.Second)
 			continue
 		}
 
+		jsonError := new(json.UnmarshalTypeError)
+		if !errors.As(err, &jsonError) {
+			return ratelimitData, err
+		}
+
+		err = json.Unmarshal(bodyBytes, &target)
+		if err != nil {
+			return ratelimitData, err
+		}
 		// We got the report object.
-		defer response.Body.Close()
 		break
 	}
 
 	c.ReportStatus.Status = "done"
+	l.Debug("loading report", zap.Any("report", target))
 	err := c.StatusesStore.Load(&target)
 	if err != nil {
-		return nil, err
+		return ratelimitData, err
 	}
 	return ratelimitData, nil
 }
