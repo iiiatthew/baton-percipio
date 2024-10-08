@@ -244,12 +244,18 @@ func (c *Client) GetLearningActivityReport(
 			time.Sleep(config.RetryAfterSeconds * time.Second)
 			continue
 		}
-
-		jsonError := new(json.UnmarshalTypeError)
-		if !errors.As(err, &jsonError) {
+		syntaxError := new(json.SyntaxError)
+		if errors.As(err, &syntaxError) {
+			l.Warn("syntax error unmarshaling report status", zap.Error(err))
+			time.Sleep(config.RetryAfterSeconds * time.Second)
+			continue
+		}
+		unmarshalError := new(json.UnmarshalTypeError)
+		if !errors.As(err, &unmarshalError) {
 			return ratelimitData, err
 		}
 
+		l.Debug("unmarshaling to report status failed. trying to unmarshall as report", zap.Error(err))
 		err = json.Unmarshal(bodyBytes, &target)
 		if err != nil {
 			return ratelimitData, err
