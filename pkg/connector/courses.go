@@ -148,7 +148,7 @@ func (o *courseBuilder) Grants(
 		}
 	}
 
-	if o.client.ReportStatus.Status == "PENDING" {
+	if o.client.ReportStatus.Status == "PENDING" || o.client.ReportStatus.Status == "IN_PROGRESS" {
 		ratelimitData, err := o.client.GetLearningActivityReport(ctx)
 		outputAnnotations.WithRateLimiting(ratelimitData)
 		if err != nil {

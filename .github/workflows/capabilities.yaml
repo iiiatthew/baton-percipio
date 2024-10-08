@@ -24,6 +24,9 @@ jobs:
         run: go build -o connector ./cmd/baton-percipio
 
       - name: Run and save output
+        env:
+          BATON_ORGANIZATION_ID: ${{ secrets.ORGANIZATION_ID }}
+          BATON_API_TOKEN: ${{ secrets.API_TOKEN }}
         run: ./connector capabilities > baton_capabilities.json
 
       - name: Commit changes
