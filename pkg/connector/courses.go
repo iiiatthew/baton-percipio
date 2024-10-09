@@ -101,11 +101,14 @@ func (o *courseBuilder) List(
 		return nil, "", outputAnnotations, err
 	}
 	for _, course := range courses {
-		resource0, err := courseResource(course, parentResourceID)
+		if course.Lifecycle.Status == "INACTIVE" {
+			continue
+		}
+		resource, err := courseResource(course, parentResourceID)
 		if err != nil {
 			return nil, "", nil, err
 		}
-		outputResources = append(outputResources, resource0)
+		outputResources = append(outputResources, resource)
 	}
 
 	nextToken := client.GetNextToken(offset, limit, total, pagingRequestId)
