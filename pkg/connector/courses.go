@@ -31,8 +31,33 @@ func (o *courseBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 }
 
 func courseResource(course client.Course, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
-	resource0, err := resourceSdk.NewResource(
-		course.Code,
+	courseName := ""
+
+	for _, metadata := range course.LocalizedMetadata {
+		if metadata.Title == "" {
+			continue
+		}
+
+		// American is the best language. Default to it.
+		if metadata.LocaleCode == "en-US" {
+			courseName = metadata.Title
+			break
+		}
+
+		if courseName == "" {
+			courseName = metadata.Title
+		}
+	}
+
+	if courseName == "" {
+		courseName = course.Code
+	}
+	if courseName == "" {
+		courseName = course.Id
+	}
+
+	resource, err := resourceSdk.NewResource(
+		courseName,
 		courseResourceType,
 		course.Id,
 		resourceSdk.WithParentResourceID(parentResourceID),
@@ -41,7 +66,7 @@ func courseResource(course client.Course, parentResourceID *v2.ResourceId) (*v2.
 		return nil, err
 	}
 
-	return resource0, nil
+	return resource, nil
 }
 
 func (o *courseBuilder) List(

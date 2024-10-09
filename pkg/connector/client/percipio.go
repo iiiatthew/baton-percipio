@@ -227,6 +227,7 @@ func (c *Client) GetLearningActivityReport(
 		defer response.Body.Close()
 		bodyBytes, err := io.ReadAll(response.Body)
 		if err != nil {
+			l.Error("error reading response body", zap.Error(err))
 			return ratelimitData, err
 		}
 
