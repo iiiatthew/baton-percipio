@@ -8,17 +8,19 @@ import (
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
+	mapset "github.com/deckarep/golang-set/v2"
 )
 
 type Connector struct {
-	client *client.Client
+	client       *client.Client
+	limitCourses mapset.Set[string]
 }
 
 // ResourceSyncers returns a ResourceSyncer for each resource type that should be synced from the upstream service.
 func (d *Connector) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncer {
 	return []connectorbuilder.ResourceSyncer{
 		newUserBuilder(d.client),
-		newCourseBuilder(d.client),
+		newCourseBuilder(d.client, d.limitCourses),
 	}
 }
 
@@ -47,6 +49,7 @@ func New(
 	ctx context.Context,
 	organizationID string,
 	token string,
+	limitCourses []string,
 ) (*Connector, error) {
 	percipioClient, err := client.New(
 		ctx,
@@ -58,7 +61,13 @@ func New(
 		return nil, err
 	}
 
-	return &Connector{
+	connector := &Connector{
 		client: percipioClient,
-	}, nil
+	}
+
+	if len(limitCourses) > 0 {
+		connector.limitCourses = mapset.NewSet(limitCourses...)
+	}
+
+	return connector, nil
 }

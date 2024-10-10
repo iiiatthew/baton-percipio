@@ -45,10 +45,12 @@ func main() {
 
 func getConnector(ctx context.Context, v *viper.Viper) (types.ConnectorServer, error) {
 	l := ctxzap.Extract(ctx)
+	limitCourses := v.GetStringSlice(config2.LimitCoursesField.FieldName)
 	cb, err := connector.New(
 		ctx,
 		v.GetString(config2.OrganizationIdField.FieldName),
 		v.GetString(config2.ApiTokenField.FieldName),
+		limitCourses,
 	)
 	if err != nil {
 		l.Error("error creating connector", zap.Error(err))
