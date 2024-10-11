@@ -16,12 +16,19 @@ var (
 		field.WithRequired(true),
 	)
 
+	LimitCoursesField = field.StringSliceField(
+		"limited-courses",
+		field.WithDescription("Limit imported courses to a specific list by Course ID"),
+		field.WithRequired(false),
+	)
+
 	// ConfigurationFields defines the external configuration required for the
 	// connector to run. Note: these fields can be marked as optional or
 	// required.
 	ConfigurationFields = []field.SchemaField{
 		ApiTokenField,
 		OrganizationIdField,
+		LimitCoursesField,
 	}
 
 	// FieldRelationships defines relationships between the fields listed in

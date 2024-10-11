@@ -11,6 +11,7 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/types/entitlement"
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	resourceSdk "github.com/conductorone/baton-sdk/pkg/types/resource"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 )
@@ -24,6 +25,7 @@ const (
 type courseBuilder struct {
 	client       *client.Client
 	resourceType *v2.ResourceType
+	limitCourses mapset.Set[string]
 }
 
 func (o *courseBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
@@ -102,6 +104,9 @@ func (o *courseBuilder) List(
 	}
 	for _, course := range courses {
 		if course.Lifecycle.Status == "INACTIVE" {
+			continue
+		}
+		if o.limitCourses != nil && !o.limitCourses.Contains(course.Id) {
 			continue
 		}
 		resource, err := courseResource(course, parentResourceID)
@@ -199,9 +204,10 @@ func (o *courseBuilder) Grants(
 	return grants, "", outputAnnotations, nil
 }
 
-func newCourseBuilder(client *client.Client) *courseBuilder {
+func newCourseBuilder(client *client.Client, limitCourses mapset.Set[string]) *courseBuilder {
 	return &courseBuilder{
 		client:       client,
 		resourceType: courseResourceType,
+		limitCourses: limitCourses,
 	}
 }
