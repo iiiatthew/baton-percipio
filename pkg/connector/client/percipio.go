@@ -166,9 +166,9 @@ func (c *Client) GenerateLearningActivityReport(
 ) {
 	now := time.Now()
 	body := ReportConfigurations{
-		End:   now,
-		Start: now.Add(-ReportLookBackDefault),
-		// TODO(marcos): pick better default configurations.
+		End:         now,
+		Start:       now.Add(-ReportLookBackDefault),
+		ContentType: "Course,Assessment",
 	}
 
 	var target ReportStatus

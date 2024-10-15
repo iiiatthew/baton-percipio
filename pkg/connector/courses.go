@@ -32,9 +32,23 @@ func (o *courseBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 	return o.resourceType
 }
 
-func courseResource(course client.Course, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
-	courseName := ""
+// Returns nil if we want to skip syncing this course resource.
+func courseResource(ctx context.Context, course client.Course, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
+	l := ctxzap.Extract(ctx)
+	if course.Lifecycle.Status == "INACTIVE" {
+		l.Debug("Skipping inactive course", zap.String("courseId", course.Id))
+		return nil, nil
+	}
+	if course.ContentType.PercipioType != "COURSE" && course.ContentType.PercipioType != "ASSESMENT" {
+		l.Debug("Skipping non-course content", zap.String("courseId", course.Id), zap.String("contentType", course.ContentType.PercipioType))
+		return nil, nil
+	}
 
+	resourceOpts := []resourceSdk.ResourceOption{
+		resourceSdk.WithParentResourceID(parentResourceID),
+	}
+
+	courseName := ""
 	for _, metadata := range course.LocalizedMetadata {
 		if metadata.Title == "" {
 			continue
@@ -62,7 +76,7 @@ func courseResource(course client.Course, parentResourceID *v2.ResourceId) (*v2.
 		courseName,
 		courseResourceType,
 		course.Id,
-		resourceSdk.WithParentResourceID(parentResourceID),
+		resourceOpts...,
 	)
 	if err != nil {
 		return nil, err
@@ -103,15 +117,12 @@ func (o *courseBuilder) List(
 		return nil, "", outputAnnotations, err
 	}
 	for _, course := range courses {
-		if course.Lifecycle.Status == "INACTIVE" {
-			continue
-		}
-		if o.limitCourses != nil && !o.limitCourses.Contains(course.Id) {
-			continue
-		}
-		resource, err := courseResource(course, parentResourceID)
+		resource, err := courseResource(ctx, course, parentResourceID)
 		if err != nil {
 			return nil, "", nil, err
+		}
+		if resource == nil {
+			continue
 		}
 		outputResources = append(outputResources, resource)
 	}
