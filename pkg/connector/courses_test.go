@@ -84,7 +84,7 @@ func TestCoursesList(t *testing.T) {
 
 	t.Run("should list grants", func(t *testing.T) {
 		c := newCourseBuilder(percipioClient, nil)
-		course, _ := courseResource(client.Course{Id: "00000000-0000-0000-0000-000000000000"}, nil)
+		course, _ := courseResource(ctx, client.Course{Id: "00000000-0000-0000-0000-000000000000"}, nil)
 		grants := make([]*v2.Grant, 0)
 		pToken := pagination.Token{
 			Token: "",

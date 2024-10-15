@@ -136,28 +136,28 @@ type Publication struct {
 type Report []ReportEntry
 
 type ReportConfigurations struct {
-	Audience                string               `json:"audience,omitempty"`
-	ContentType             string               `json:"contentType,omitempty"`
-	CsvPreferences          ReportCsvPreferences `json:"csvPreferences,omitempty"`
-	Encrypt                 bool                 `json:"encrypt,omitempty"`
-	End                     time.Time            `json:"end,omitempty"`
-	FileMask                string               `json:"fileMask,omitempty"`
-	FolderName              string               `json:"folderName,omitempty"`
-	FormatType              string               `json:"formatType,omitempty"`
-	IncludeMillisInFilename bool                 `json:"includeMillisInFilename,omitempty"`
-	IsFileRequiredInSftp    bool                 `json:"isFileRequiredInSftp,omitempty"`
-	IsPgpFileExtnNotReqrd   bool                 `json:"isPgpFileExtnNotReqrd,omitempty"`
-	Locale                  string               `json:"locale,omitempty"`
-	Mapping                 string               `json:"mapping,omitempty"`
-	Plugin                  string               `json:"plugin,omitempty"`
-	SftpId                  string               `json:"sftpId,omitempty"`
-	Sort                    ReportSort           `json:"sort,omitempty"`
-	Start                   time.Time            `json:"start,omitempty"`
-	Status                  string               `json:"status,omitempty"`
-	Template                string               `json:"template,omitempty"`
-	TimeFrame               string               `json:"timeFrame,omitempty"`
-	TransformName           string               `json:"transformName,omitempty"`
-	Zip                     bool                 `json:"zip,omitempty"`
+	Audience                string                `json:"audience,omitempty"`
+	ContentType             string                `json:"contentType,omitempty"`
+	CsvPreferences          *ReportCsvPreferences `json:"csvPreferences,omitempty"`
+	Encrypt                 bool                  `json:"encrypt,omitempty"`
+	End                     time.Time             `json:"end,omitempty"`
+	FileMask                string                `json:"fileMask,omitempty"`
+	FolderName              string                `json:"folderName,omitempty"`
+	FormatType              string                `json:"formatType,omitempty"`
+	IncludeMillisInFilename bool                  `json:"includeMillisInFilename,omitempty"`
+	IsFileRequiredInSftp    bool                  `json:"isFileRequiredInSftp,omitempty"`
+	IsPgpFileExtnNotReqrd   bool                  `json:"isPgpFileExtnNotReqrd,omitempty"`
+	Locale                  string                `json:"locale,omitempty"`
+	Mapping                 string                `json:"mapping,omitempty"`
+	Plugin                  string                `json:"plugin,omitempty"`
+	SftpId                  string                `json:"sftpId,omitempty"`
+	Sort                    *ReportSort           `json:"sort,omitempty"`
+	Start                   time.Time             `json:"start,omitempty"`
+	Status                  string                `json:"status,omitempty"`
+	Template                string                `json:"template,omitempty"`
+	TimeFrame               string                `json:"timeFrame,omitempty"`
+	TransformName           string                `json:"transformName,omitempty"`
+	Zip                     bool                  `json:"zip,omitempty"`
 }
 
 type ReportCsvPreferences struct {
