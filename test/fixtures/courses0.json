@@ -10,9 +10,9 @@
       "isCompliance": false
     },
     "contentType": {
-      "percipioType": "VIDEO",
-      "category": "VIDEO",
-      "displayLabel": "Video",
+      "percipioType": "COURSE",
+      "category": "COURSE",
+      "displayLabel": "Course",
       "source": null
     },
     "localeCodes": [
