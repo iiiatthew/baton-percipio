@@ -117,6 +117,9 @@ func (o *courseBuilder) List(
 		return nil, "", outputAnnotations, err
 	}
 	for _, course := range courses {
+		if o.limitCourses != nil && !o.limitCourses.Contains(course.Id) {
+			continue
+		}
 		resource, err := courseResource(ctx, course, parentResourceID)
 		if err != nil {
 			return nil, "", nil, err
