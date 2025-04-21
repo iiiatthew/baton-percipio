@@ -13,7 +13,7 @@ import (
 
 func (c *Client) getUrl(
 	path string,
-	queryParameters map[string]interface{},
+	queryParameters map[string]any,
 ) *liburl.URL {
 	params := liburl.Values{}
 	for key, valueAny := range queryParameters {
@@ -42,8 +42,8 @@ func WithBearerToken(token string) uhttp.RequestOption {
 func (c *Client) get(
 	ctx context.Context,
 	path string,
-	queryParameters map[string]interface{},
-	target interface{},
+	queryParameters map[string]any,
+	target any,
 ) (
 	*http.Response,
 	*v2.RateLimitDescription,
@@ -83,9 +83,9 @@ func (c *Client) doRequest(
 	ctx context.Context,
 	method string,
 	path string,
-	queryParameters map[string]interface{},
-	payload interface{},
-	target interface{},
+	queryParameters map[string]any,
+	payload any,
+	target any,
 ) (
 	*http.Response,
 	*v2.RateLimitDescription,
@@ -112,10 +112,12 @@ func (c *Client) doRequest(
 		uhttp.WithRatelimitData(&ratelimitData),
 		uhttp.WithJSONResponse(target),
 	)
-	if err != nil {
-		return response, &ratelimitData, err
+	if response != nil && response.Body != nil {
+		defer response.Body.Close()
 	}
-	defer response.Body.Close()
+	if err != nil {
+		return response, &ratelimitData, fmt.Errorf("error making %s request to %s: %w", method, url, err)
+	}
 
 	return response, &ratelimitData, nil
 }
