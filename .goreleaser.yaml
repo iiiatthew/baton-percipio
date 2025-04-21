@@ -36,7 +36,7 @@ builds:
     hooks:
       post:
         - gon .gon-arm64.json
-        - mv dist/baton-percipio-darwin-arm64.signed.zip dist/macos-arm64_darwin_arm64/baton-percipio
+        - mv dist/baton-percipio-darwin-arm64.signed.zip dist/macos-arm64_darwin_arm64_v8.0/baton-percipio
 archives:
   - id: linux-archive
     builds:
