@@ -64,5 +64,5 @@ jobs:
 #          BATON_ENTITLEMENT: "group:00G8a000003XHtmEAG:member"
 #          BATON_PRINCIPAL: "0058a00000KGxQ8AAL"
 #          BATON_PRINCIPAL_TYPE: "user"
-#          COMMAND: ./baton-salesforce
+#          COMMAND: ./baton-percipio
 #        run: ./test/grant-revoke.sh

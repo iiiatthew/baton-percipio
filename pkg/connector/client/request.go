@@ -112,9 +112,6 @@ func (c *Client) doRequest(
 		uhttp.WithRatelimitData(&ratelimitData),
 		uhttp.WithJSONResponse(target),
 	)
-	if response != nil && response.Body != nil {
-		defer response.Body.Close()
-	}
 	if err != nil {
 		return response, &ratelimitData, fmt.Errorf("error making %s request to %s: %w", method, url, err)
 	}
