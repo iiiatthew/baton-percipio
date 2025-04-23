@@ -136,8 +136,9 @@ func (c *Client) GetCourses(
 	query := map[string]interface{}{
 		"max":    limit,
 		"offset": offset,
-		// blank pagingRequestId is ignored.
-		"pagingRequestId": pagingRequestId,
+	}
+	if pagingRequestId != "" {
+		query["pagingRequestId"] = pagingRequestId
 	}
 	var target []Course
 	response, ratelimitData, err := c.get(ctx, ApiPathCoursesList, query, &target)
