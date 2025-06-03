@@ -3,12 +3,15 @@ package connector
 import (
 	"context"
 	"io"
+	"time"
 
 	"github.com/conductorone/baton-percipio/pkg/connector/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"go.uber.org/zap"
 )
 
 type Connector struct {
@@ -18,6 +21,32 @@ type Connector struct {
 
 // ResourceSyncers returns a ResourceSyncer for each resource type that should be synced from the upstream service.
 func (d *Connector) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncer {
+	logger := ctxzap.Extract(ctx)
+	startTime := time.Now()
+
+	logger.Info("SYNC STARTED",
+		zap.Time("timestamp", startTime),
+		zap.String("connector", "baton-percipio"),
+	)
+
+	defer func() {
+		logger.Info("SYNC COMPLETED",
+			zap.Time("timestamp", time.Now()),
+			zap.Duration("duration", time.Since(startTime)),
+		)
+	}()
+
+	// Log resource syncer configuration
+	limitCoursesCount := 0
+	if d.limitCourses != nil {
+		limitCoursesCount = d.limitCourses.Cardinality()
+	}
+
+	logger.Info("Sync configuration",
+		zap.Int("limitCoursesCount", limitCoursesCount),
+		zap.Bool("courseLimitingEnabled", d.limitCourses != nil),
+	)
+
 	return []connectorbuilder.ResourceSyncer{
 		newUserBuilder(d.client),
 		newCourseBuilder(d.client, d.limitCourses),

@@ -96,17 +96,32 @@ func (o *courseBuilder) List(
 	error,
 ) {
 	logger := ctxzap.Extract(ctx)
-	logger.Debug("Starting Courses List", zap.String("token", pToken.Token))
+
+	// Parse pagination token and log details
+	offset, limit, pagingRequestId, err := client.ParsePaginationToken(pToken)
+	if err != nil {
+		logger.Error("Failed to parse pagination token",
+			zap.Error(err),
+			zap.String("token", pToken.Token),
+		)
+		return nil, "", nil, err
+	}
+
+	// Calculate page information for tracking
+	currentPage := (offset / limit) + 1
+
+	logger.Info("Courses List pagination info",
+		zap.Int("offset", offset),
+		zap.Int("limit", limit),
+		zap.String("pagingRequestId", pagingRequestId),
+		zap.Int("currentPage", currentPage),
+		zap.String("token", pToken.Token),
+	)
 
 	outputResources := make([]*v2.Resource, 0)
 	var outputAnnotations annotations.Annotations
 
-	offset, limit, pagingRequestId, err := client.ParsePaginationToken(pToken)
-	if err != nil {
-		return nil, "", nil, err
-	}
-
-	courses, pagingRequestId, total, ratelimitData, err := o.client.GetCourses(
+	courses, newPagingRequestId, total, ratelimitData, err := o.client.GetCourses(
 		ctx,
 		offset,
 		limit,
@@ -114,23 +129,69 @@ func (o *courseBuilder) List(
 	)
 	outputAnnotations.WithRateLimiting(ratelimitData)
 	if err != nil {
+		logger.Error("Failed to get courses from API",
+			zap.Error(err),
+			zap.Int("offset", offset),
+			zap.Int("limit", limit),
+			zap.Int("currentPage", currentPage),
+		)
 		return nil, "", outputAnnotations, err
 	}
+
+	// Process courses and apply filtering
+	coursesProcessed := 0
+	coursesFiltered := 0
+	coursesSkipped := 0
+
 	for _, course := range courses {
 		if o.limitCourses != nil && !o.limitCourses.Contains(course.Id) {
+			coursesFiltered++
 			continue
 		}
 		resource, err := courseResource(ctx, course, parentResourceID)
 		if err != nil {
+			logger.Error("Failed to create course resource",
+				zap.Error(err),
+				zap.String("courseId", course.Id),
+			)
 			return nil, "", nil, err
 		}
 		if resource == nil {
+			coursesSkipped++
 			continue
 		}
 		outputResources = append(outputResources, resource)
+		coursesProcessed++
 	}
 
-	nextToken := client.GetNextToken(offset, limit, total, pagingRequestId)
+	nextToken := client.GetNextToken(offset, limit, total, newPagingRequestId)
+	hasNextPage := nextToken != ""
+
+	// Calculate progress and pagination metrics
+	totalPages := (total + limit - 1) / limit // Ceiling division
+	progressPercent := float64(offset+len(courses)) / float64(total) * 100
+
+	logger.Info("Courses List completed",
+		zap.Int("coursesFromAPI", len(courses)),
+		zap.Int("coursesProcessed", coursesProcessed),
+		zap.Int("coursesFiltered", coursesFiltered),
+		zap.Int("coursesSkipped", coursesSkipped),
+		zap.Int("total", total),
+		zap.Int("currentPage", currentPage),
+		zap.Int("totalPages", totalPages),
+		zap.Float64("progressPercent", progressPercent),
+		zap.Bool("hasNextPage", hasNextPage),
+		zap.String("nextToken", nextToken),
+		zap.String("newPagingRequestId", newPagingRequestId),
+	)
+
+	// Warn if pagination seems unusual
+	if currentPage > 50 {
+		logger.Warn("High page count detected - potential pagination issue",
+			zap.Int("currentPage", currentPage),
+			zap.Int("totalPages", totalPages),
+		)
+	}
 
 	return outputResources, nextToken, outputAnnotations, nil
 }

@@ -116,25 +116,66 @@ func (o *userBuilder) List(
 	outputResources := make([]*v2.Resource, 0)
 	var outputAnnotations annotations.Annotations
 
-	offset, limit, _, err := client.ParsePaginationToken(pToken)
+	// Use simple pagination (no pagingRequestId) for users endpoint
+	offset, limit, err := client.ParseSimplePaginationToken(pToken)
 	if err != nil {
+		logger.Error("Failed to parse simple pagination token",
+			zap.Error(err),
+			zap.String("token", pToken.Token),
+		)
 		return nil, "", nil, err
 	}
+
+	logger.Info("Users List pagination info",
+		zap.Int("offset", offset),
+		zap.Int("limit", limit),
+		zap.String("token", pToken.Token),
+	)
 
 	users, total, ratelimitData, err := o.client.GetUsers(ctx, offset, limit)
 	outputAnnotations.WithRateLimiting(ratelimitData)
 	if err != nil {
+		logger.Error("Failed to get users from API",
+			zap.Error(err),
+			zap.Int("offset", offset),
+			zap.Int("limit", limit),
+		)
 		return nil, "", outputAnnotations, err
 	}
+
+	usersProcessed := 0
 	for _, user := range users {
 		userResource0, err := userResource(user, parentResourceID)
 		if err != nil {
+			logger.Error("Failed to create user resource",
+				zap.Error(err),
+				zap.String("userId", user.Id),
+			)
 			return nil, "", nil, err
 		}
 		outputResources = append(outputResources, userResource0)
+		usersProcessed++
 	}
 
-	nextToken := client.GetNextToken(offset, limit, total, "")
+	// Use simple pagination (no pagingRequestId) for users endpoint
+	nextToken := client.GetSimpleNextToken(offset, limit, total)
+	hasNextPage := nextToken != ""
+
+	// Calculate progress metrics
+	currentPage := (offset / limit) + 1
+	totalPages := (total + limit - 1) / limit // Ceiling division
+	progressPercent := float64(offset+len(users)) / float64(total) * 100
+
+	logger.Info("Users List completed",
+		zap.Int("usersFromAPI", len(users)),
+		zap.Int("usersProcessed", usersProcessed),
+		zap.Int("total", total),
+		zap.Int("currentPage", currentPage),
+		zap.Int("totalPages", totalPages),
+		zap.Float64("progressPercent", progressPercent),
+		zap.Bool("hasNextPage", hasNextPage),
+		zap.String("nextToken", nextToken),
+	)
 
 	return outputResources, nextToken, outputAnnotations, nil
 }
