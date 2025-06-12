@@ -27,7 +27,8 @@ const (
 	HeaderNamePagingRequestId     = "x-paging-request-id"
 	HeaderNameTotalCount          = "x-total-count"
 	PageSizeDefault               = 1000
-	ReportLookBackDefault         = 10 * time.Hour * 24 * 365 // 10 years
+	ReportLookBackDefault         = 10 * 24 * time.Hour // 10 days
+	// ReportLookBackDefault         = 10 * time.Hour * 24 * 365 // 10 years
 )
 
 type Client struct {
