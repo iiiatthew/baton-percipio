@@ -113,8 +113,8 @@ func (c *Client) GetUsers(
 	return target, total, ratelimitData, nil
 }
 
-// GetCourses fetches courses using first call (offset) or subsequent calls (page).
-// Returns courses, pagingRequestId, lastPage, ratelimit, error.
+// GetCourses fetches courses using offset-based pagination.
+// Returns courses, pagingRequestId, finalOffset, ratelimit, error.
 func (c *Client) GetCourses(
 	ctx context.Context,
 	offset int,
@@ -127,21 +127,15 @@ func (c *Client) GetCourses(
 	*v2.RateLimitDescription,
 	error,
 ) {
-	var query map[string]interface{}
+	// Always use offset/max parameters for all calls
+	query := map[string]interface{}{
+		"max":    limit,
+		"offset": offset,
+	}
 
-	if pagingRequestId == "" {
-		// First call: use offset=0&max=1000
-		query = map[string]interface{}{
-			"max":    limit,
-			"offset": offset,
-		}
-	} else {
-		// Subsequent calls: use page=N&pagingRequestId=<id> (offset parameter is page number)
-		query = map[string]interface{}{
-			"max":             limit,
-			"page":            offset, // offset parameter represents page number for subsequent calls
-			"pagingRequestId": pagingRequestId,
-		}
+	// Add pagingRequestId for subsequent calls
+	if pagingRequestId != "" {
+		query["pagingRequestId"] = pagingRequestId
 	}
 
 	var target []Course
@@ -153,22 +147,22 @@ func (c *Client) GetCourses(
 
 	newPagingRequestId := response.Header.Get(HeaderNamePagingRequestId)
 
-	var lastPage int
+	var finalOffset int
 	if pagingRequestId == "" {
-		// First call: parse link header to get lastPage
+		// First call: parse link header to get finalOffset
 		linkHeader := response.Header.Get("link")
 		if linkHeader != "" {
-			lastPage, err = ParseLinkHeader(linkHeader)
+			finalOffset, err = ParseLinkHeader(linkHeader)
 			if err != nil {
 				return nil, "", 0, ratelimitData, fmt.Errorf("failed to parse link header: %w", err)
 			}
 		}
 	} else {
-		// Subsequent calls: lastPage not needed from response
-		lastPage = 0
+		// Subsequent calls: finalOffset not needed from response
+		finalOffset = 0
 	}
 
-	return target, newPagingRequestId, lastPage, ratelimitData, nil
+	return target, newPagingRequestId, finalOffset, ratelimitData, nil
 }
 
 // GenerateLearningActivityReport makes a post request to the API asking it to start generating a report. We'll need to then poll a _different_ endpoint to get the actual report data.

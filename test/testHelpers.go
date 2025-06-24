@@ -47,8 +47,8 @@ func FixturesServer() *httptest.Server {
 			func(writer http.ResponseWriter, request *http.Request) {
 				writer.Header().Set(uhttp.ContentType, "application/json")
 				writer.Header().Set(client.HeaderNameTotalCount, "2")
-				writer.Header().Set(client.HeaderNamePagingRequestId, "0")
-				writer.WriteHeader(http.StatusOK)
+				writer.Header().Set(client.HeaderNamePagingRequestId, "test-paging-id")
+
 				var filename string
 				routeUrl := request.URL.String()
 				switch {
@@ -57,6 +57,12 @@ func FixturesServer() *httptest.Server {
 				case strings.Contains(routeUrl, "report-requests/"):
 					filename = "../../test/fixtures/report.json"
 				case strings.Contains(routeUrl, "catalog"):
+					// Add mock link header for content pagination testing
+					linkHeader := "</v2/organizations/test-org/catalog-content?offset=0&max=1000&pagingRequestId=test-paging-id>; " +
+						"page=\"1\"; per_page=\"1000\"; rel=\"first\", " +
+						"</v2/organizations/test-org/catalog-content?offset=2000&max=1000&pagingRequestId=test-paging-id>; " +
+						"page=\"3\"; per_page=\"1000\"; rel=\"last\""
+					writer.Header().Set("link", linkHeader)
 					filename = "../../test/fixtures/courses0.json"
 				case strings.Contains(routeUrl, "users"):
 					filename = "../../test/fixtures/users0.json"
@@ -64,6 +70,7 @@ func FixturesServer() *httptest.Server {
 					// This should never happen in tests.
 					panic(fmt.Errorf("bad url: %s", routeUrl))
 				}
+				writer.WriteHeader(http.StatusOK)
 				data, _ := os.ReadFile(filename)
 				_, err := writer.Write(data)
 				if err != nil {

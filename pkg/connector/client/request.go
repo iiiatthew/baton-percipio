@@ -9,6 +9,7 @@ import (
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
+	"go.uber.org/zap"
 )
 
 func (c *Client) getUrl(
@@ -100,6 +101,10 @@ func (c *Client) doRequest(
 	}
 
 	url := c.getUrl(path, queryParameters)
+
+	// Log the API call prominently
+	logger := zap.L()
+	logger.Info(fmt.Sprintf("*** Making API Call: %s %s", method, url.String()))
 
 	request, err := c.wrapper.NewRequest(ctx, method, url, options...)
 	if err != nil {

@@ -101,22 +101,37 @@ func (o *courseBuilder) List(
 	outputResources := make([]*v2.Resource, 0)
 	var outputAnnotations annotations.Annotations
 
-	page, pagingRequestId, lastPage, err := client.ParseContentPaginationToken(pToken)
+	offset, pagingRequestId, finalOffset, err := client.ParseContentPaginationToken(pToken)
 	if err != nil {
 		return nil, "", nil, err
 	}
 
-	courses, newPagingRequestId, returnedLastPage, ratelimitData, err := o.client.GetCourses(
+	courses, newPagingRequestId, returnedFinalOffset, ratelimitData, err := o.client.GetCourses(
 		ctx,
-		page,
+		offset,
 		1000,
 		pagingRequestId,
 	)
 
-	// Use lastPage from first call response if we don't have it yet
-	if lastPage == 0 && returnedLastPage > 0 {
-		lastPage = returnedLastPage
+	// Use finalOffset from first call response if we don't have it yet
+	if finalOffset == 0 && returnedFinalOffset > 0 {
+		finalOffset = returnedFinalOffset
 	}
+
+	// Log pagination progress
+	hasMore := offset <= finalOffset
+	var nextOffset int
+	if hasMore {
+		nextOffset = offset + 1000
+	}
+
+	logger.Info("Content pagination progress",
+		zap.Int("currentOffset", offset),
+		zap.Int("finalOffset", finalOffset),
+		zap.Bool("hasMore", hasMore),
+		zap.Int("nextOffset", nextOffset),
+	)
+
 	outputAnnotations.WithRateLimiting(ratelimitData)
 	if err != nil {
 		return nil, "", outputAnnotations, err
@@ -135,7 +150,15 @@ func (o *courseBuilder) List(
 		outputResources = append(outputResources, resource)
 	}
 
-	nextToken := client.GetContentNextToken(page, lastPage, newPagingRequestId)
+	nextToken := client.GetContentNextToken(offset, 1000, finalOffset, newPagingRequestId)
+
+	// Log pagination completion if no more pages
+	if nextToken == "" {
+		logger.Info("Content pagination complete",
+			zap.Int("finalOffset", finalOffset),
+			zap.String("explanation", "Reached final offset, pagination stopped"),
+		)
+	}
 
 	return outputResources, nextToken, outputAnnotations, nil
 }
