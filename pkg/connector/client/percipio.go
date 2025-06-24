@@ -27,8 +27,7 @@ const (
 	HeaderNamePagingRequestId     = "x-paging-request-id"
 	HeaderNameTotalCount          = "x-total-count"
 	PageSizeDefault               = 1000
-	ReportLookBackDefault         = 10 * 24 * time.Hour // 10 days
-	// ReportLookBackDefault         = 10 * time.Hour * 24 * 365 // 10 years
+	ReportLookBackDefault         = 10 * time.Hour * 24 * 365 // 10 years
 )
 
 type Client struct {
@@ -78,51 +77,7 @@ func New(
 
 func getTotalCount(response *http.Response) (int, error) {
 	totalString := response.Header.Get(HeaderNameTotalCount)
-	if totalString == "" {
-		return 0, fmt.Errorf("missing %s header in response", HeaderNameTotalCount)
-	}
-
-	total, err := strconv.Atoi(totalString)
-	if err != nil {
-		return 0, fmt.Errorf("invalid %s header value '%s': %w", HeaderNameTotalCount, totalString, err)
-	}
-
-	// Sanity check: if total is suspiciously high, something is wrong
-	if total > 1000000 { // More than 1 million courses seems suspicious
-		return 0, fmt.Errorf("suspiciously high total count %d from %s header", total, HeaderNameTotalCount)
-	}
-
-	return total, nil
-}
-
-// getTotalCountForContentDiscovery handles the case where content-discovery API
-// may not provide x-total-count header (not documented in swagger)
-func getTotalCountForContentDiscovery(response *http.Response, coursesReturned int, offset int, limit int) (int, error) {
-	totalString := response.Header.Get(HeaderNameTotalCount)
-
-	// If no header is provided, estimate based on returned data
-	if totalString == "" {
-		// If we got fewer courses than requested, we're at the end
-		if coursesReturned < limit {
-			estimatedTotal := offset + coursesReturned
-			return estimatedTotal, nil
-		}
-		// Otherwise, we don't know the total - set a high estimate to continue pagination
-		// The safety limit will prevent infinite loops
-		return offset + coursesReturned + 1000, nil
-	}
-
-	total, err := strconv.Atoi(totalString)
-	if err != nil {
-		return 0, fmt.Errorf("invalid %s header value '%s': %w", HeaderNameTotalCount, totalString, err)
-	}
-
-	// Sanity check: if total is suspiciously high, something is wrong
-	if total > 1000000 { // More than 1 million courses seems suspicious
-		return 0, fmt.Errorf("suspiciously high total count %d from %s header", total, HeaderNameTotalCount)
-	}
-
-	return total, nil
+	return strconv.Atoi(totalString)
 }
 
 // GetUsers returns
@@ -158,14 +113,8 @@ func (c *Client) GetUsers(
 	return target, total, ratelimitData, nil
 }
 
-// GetCourses Given a limit/offset and a pagination token (see below), fetch a
-// page's worth of course data. Returns _five_ values:
-//  1. the list of courses
-//  2. the "pagination token", required to get any page but the first.
-//  3. the total number of courses, so that we don't have to fetch an extra page
-//     to confirm there are no more courses.
-//  4. rate limit data read from headers.
-//  5. any error
+// GetCourses fetches courses using first call (offset) or subsequent calls (page).
+// Returns courses, pagingRequestId, lastPage, ratelimit, error.
 func (c *Client) GetCourses(
 	ctx context.Context,
 	offset int,
@@ -178,88 +127,51 @@ func (c *Client) GetCourses(
 	*v2.RateLimitDescription,
 	error,
 ) {
-	// Add detailed logging for API call tracking
-	logger := ctxzap.Extract(ctx)
-	requestId := fmt.Sprintf("req_%d", time.Now().UnixNano())
-	startTime := time.Now()
+	var query map[string]interface{}
 
-	logger.Info("GetCourses API call initiated",
-		zap.String("requestId", requestId),
-		zap.Int("offset", offset),
-		zap.Int("limit", limit),
-		zap.String("pagingRequestId", pagingRequestId),
-		zap.Time("startTime", startTime),
-	)
+	if pagingRequestId == "" {
+		// First call: use offset=0&max=1000
+		query = map[string]interface{}{
+			"max":    limit,
+			"offset": offset,
+		}
+	} else {
+		// Subsequent calls: use page=N&pagingRequestId=<id> (offset parameter is page number)
+		query = map[string]interface{}{
+			"max":             limit,
+			"page":            offset, // offset parameter represents page number for subsequent calls
+			"pagingRequestId": pagingRequestId,
+		}
+	}
 
-	query := map[string]interface{}{
-		"max":    limit,
-		"offset": offset,
-	}
-	if pagingRequestId != "" {
-		query["pagingRequestId"] = pagingRequestId
-	}
 	var target []Course
 	response, ratelimitData, err := c.get(ctx, ApiPathCoursesList, query, &target)
 	if err != nil {
-		logger.Error("GetCourses API call failed",
-			zap.String("requestId", requestId),
-			zap.Error(err),
-			zap.Duration("duration", time.Since(startTime)),
-		)
 		return nil, "", 0, ratelimitData, err
 	}
 	defer response.Body.Close()
 
 	newPagingRequestId := response.Header.Get(HeaderNamePagingRequestId)
-	total, err := getTotalCountForContentDiscovery(response, len(target), offset, limit)
-	if err != nil {
-		logger.Error("GetCourses header parsing failed",
-			zap.String("requestId", requestId),
-			zap.Error(err),
-			zap.Duration("duration", time.Since(startTime)),
-		)
-		return nil, "", 0, ratelimitData, err
+
+	var lastPage int
+	if pagingRequestId == "" {
+		// First call: parse link header to get lastPage
+		linkHeader := response.Header.Get("link")
+		if linkHeader != "" {
+			lastPage, err = ParseLinkHeader(linkHeader)
+			if err != nil {
+				return nil, "", 0, ratelimitData, fmt.Errorf("failed to parse link header: %w", err)
+			}
+		}
+	} else {
+		// Subsequent calls: lastPage not needed from response
+		lastPage = 0
 	}
 
-	// Validate pagination request ID behavior
-	if offset > 0 && pagingRequestId != "" && newPagingRequestId == "" {
-		logger.Error("GetCourses pagination context lost",
-			zap.String("requestId", requestId),
-			zap.Int("offset", offset),
-			zap.String("originalPagingRequestId", pagingRequestId),
-		)
-		return nil, "", 0, ratelimitData, fmt.Errorf("API lost pagingRequestId after offset %d", offset)
-	}
-
-	// Detect potential infinite loop: same courses returned repeatedly
-	if len(target) == 0 && offset < total {
-		logger.Error("GetCourses empty response with remaining data",
-			zap.String("requestId", requestId),
-			zap.Int("offset", offset),
-			zap.Int("total", total),
-		)
-		return nil, "", 0, ratelimitData, fmt.Errorf("API returned no courses at offset %d but total is %d", offset, total)
-	}
-
-	// Calculate current page for progress tracking
-	currentPage := (offset / limit) + 1
-
-	logger.Info("GetCourses API call completed",
-		zap.String("requestId", requestId),
-		zap.Int("coursesReturned", len(target)),
-		zap.Int("total", total),
-		zap.String("nextPagingRequestId", newPagingRequestId),
-		zap.Int("currentPage", currentPage),
-		zap.Float64("progressPercent", float64(offset+len(target))/float64(total)*100),
-		zap.Duration("duration", time.Since(startTime)),
-	)
-
-	return target, newPagingRequestId, total, ratelimitData, nil
+	return target, newPagingRequestId, lastPage, ratelimitData, nil
 }
 
-// GenerateLearningActivityReport makes a post request to the API asking it to
-// start generating a report. We'll need to then poll a _different_ endpoint to
-// get the actual report data.
+// GenerateLearningActivityReport makes a post request to the API asking it to start generating a report. We'll need to then poll a _different_ endpoint to get the actual report data.
 func (c *Client) GenerateLearningActivityReport(
 	ctx context.Context,
 ) (

@@ -2,89 +2,27 @@ package client
 
 import (
 	"encoding/json"
+	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	"go.uber.org/zap"
 )
 
-const (
-	// Emergency safety limit to prevent infinite pagination
-	MaxPagesPerSync = 100 // This should handle up to 100,000 courses (100 * 1000)
-)
-
-type Pagination struct {
-	PagingRequestId string `json:"pagingRequestId"`
-	Offset          int    `json:"offset"`
-}
-
-// SimplePagination for endpoints that only use offset/max (like users)
-type SimplePagination struct {
+type UserPagination struct {
 	Offset int `json:"offset"`
 }
 
-// ParsePaginationToken - takes a pagination token and returns offset, limit,
-// and `pagingRequestId` in that order. Used for COURSES (content-discovery) endpoint.
-func ParsePaginationToken(pToken *pagination.Token) (
-	int,
-	int,
-	string,
-	error,
-) {
-	logger := zap.L() // Get global logger
-
-	var (
-		limit           = PageSizeDefault
-		offset          = 0
-		pagingRequestId = ""
-	)
-
-	if pToken == nil {
-		logger.Debug("ParsePaginationToken: nil token, using defaults",
-			zap.Int("defaultLimit", limit),
-			zap.Int("defaultOffset", offset),
-		)
-		return offset, limit, pagingRequestId, nil
-	}
-
-	logger.Debug("ParsePaginationToken called",
-		zap.String("token", pToken.Token),
-		zap.Int("size", pToken.Size),
-	)
-
-	if pToken.Size > 0 {
-		limit = pToken.Size
-	}
-
-	if pToken.Token != "" {
-		var parsed Pagination
-		err := json.Unmarshal([]byte(pToken.Token), &parsed)
-		if err != nil {
-			logger.Error("ParsePaginationToken: failed to unmarshal token",
-				zap.String("token", pToken.Token),
-				zap.Error(err),
-			)
-			return 0, 0, "", err
-		}
-		offset = parsed.Offset
-		pagingRequestId = parsed.PagingRequestId
-	}
-
-	logger.Debug("ParsePaginationToken result",
-		zap.Int("offset", offset),
-		zap.Int("limit", limit),
-		zap.String("pagingRequestId", pagingRequestId),
-	)
-
-	return offset, limit, pagingRequestId, nil
+type ContentPagination struct {
+	Page            int    `json:"page"`
+	PagingRequestId string `json:"pagingRequestId"`
+	LastPage        int    `json:"lastPage"`
 }
 
-// ParseSimplePaginationToken - takes a pagination token and returns offset, limit.
-// Used for USERS (user-management) endpoint that doesn't use pagingRequestId.
-func ParseSimplePaginationToken(pToken *pagination.Token) (
-	int,
-	int,
-	error,
-) {
+// ParseUserPaginationToken parses token for user management API.
+func ParseUserPaginationToken(pToken *pagination.Token) (int, int, error) {
 	logger := zap.L()
 
 	var (
@@ -93,14 +31,14 @@ func ParseSimplePaginationToken(pToken *pagination.Token) (
 	)
 
 	if pToken == nil {
-		logger.Debug("ParseSimplePaginationToken: nil token, using defaults",
+		logger.Debug("ParseUserPaginationToken: nil token, using defaults",
 			zap.Int("defaultLimit", limit),
 			zap.Int("defaultOffset", offset),
 		)
 		return offset, limit, nil
 	}
 
-	logger.Debug("ParseSimplePaginationToken called",
+	logger.Debug("ParseUserPaginationToken called",
 		zap.String("token", pToken.Token),
 		zap.Int("size", pToken.Size),
 	)
@@ -110,10 +48,10 @@ func ParseSimplePaginationToken(pToken *pagination.Token) (
 	}
 
 	if pToken.Token != "" {
-		var parsed SimplePagination
+		var parsed UserPagination
 		err := json.Unmarshal([]byte(pToken.Token), &parsed)
 		if err != nil {
-			logger.Error("ParseSimplePaginationToken: failed to unmarshal token",
+			logger.Error("ParseUserPaginationToken: failed to unmarshal token",
 				zap.String("token", pToken.Token),
 				zap.Error(err),
 			)
@@ -122,7 +60,7 @@ func ParseSimplePaginationToken(pToken *pagination.Token) (
 		offset = parsed.Offset
 	}
 
-	logger.Debug("ParseSimplePaginationToken result",
+	logger.Debug("ParseUserPaginationToken result",
 		zap.Int("offset", offset),
 		zap.Int("limit", limit),
 	)
@@ -130,129 +68,126 @@ func ParseSimplePaginationToken(pToken *pagination.Token) (
 	return offset, limit, nil
 }
 
-// GetNextToken given a limit, offset, and `pagingRequestId` that were used to
-// fetch _this_ page of data, and total number of resources, return the next
-// pagination token as a string. Used for COURSES (content-discovery) endpoint.
-func GetNextToken(
-	offset int,
-	limit int,
-	total int,
-	pagingRequestId string,
-) string {
+// GetUserNextToken generates next token for user management API.
+func GetUserNextToken(offset, limit, total int) string {
 	logger := zap.L()
 	nextOffset := offset + limit
-	currentPage := (offset / limit) + 1
 
-	logger.Debug("GetNextToken called",
+	logger.Debug("GetUserNextToken called",
 		zap.Int("offset", offset),
 		zap.Int("limit", limit),
 		zap.Int("total", total),
 		zap.Int("nextOffset", nextOffset),
-		zap.Int("currentPage", currentPage),
-		zap.String("pagingRequestId", pagingRequestId),
 	)
 
-	// Emergency safety check: prevent infinite pagination
-	if currentPage >= MaxPagesPerSync {
-		logger.Warn("GetNextToken: pagination safety limit reached",
-			zap.Int("currentPage", currentPage),
-			zap.Int("maxPagesPerSync", MaxPagesPerSync),
-			zap.Int("totalCoursesProcessed", offset),
-		)
-		return "" // Force pagination to stop
-	}
-
 	if nextOffset >= total {
-		logger.Debug("GetNextToken: pagination complete",
+		logger.Debug("GetUserNextToken: pagination complete",
 			zap.Int("nextOffset", nextOffset),
 			zap.Int("total", total),
-			zap.Int("totalPages", currentPage),
 		)
 		return ""
 	}
 
-	bytes, err := json.Marshal(
-		Pagination{
-			Offset:          nextOffset,
-			PagingRequestId: pagingRequestId,
-		},
-	)
+	bytes, err := json.Marshal(UserPagination{Offset: nextOffset})
 	if err != nil {
-		logger.Error("GetNextToken: failed to marshal pagination token",
+		logger.Error("GetUserNextToken: failed to marshal pagination token",
 			zap.Int("nextOffset", nextOffset),
-			zap.String("pagingRequestId", pagingRequestId),
 			zap.Error(err),
 		)
 		return ""
 	}
 
 	nextToken := string(bytes)
-	logger.Debug("GetNextToken: token generated",
+	logger.Debug("GetUserNextToken: token generated",
 		zap.String("nextToken", nextToken),
-		zap.Int("nextPage", currentPage+1),
-		zap.Float64("progressPercent", float64(nextOffset)/float64(total)*100),
 	)
 
 	return nextToken
 }
 
-// GetSimpleNextToken given a limit, offset, and total number of resources,
-// return the next pagination token as a string. Used for USERS (user-management) endpoint.
-func GetSimpleNextToken(
-	offset int,
-	limit int,
-	total int,
-) string {
-	logger := zap.L()
-	nextOffset := offset + limit
-	currentPage := (offset / limit) + 1
-
-	logger.Debug("GetSimpleNextToken called",
-		zap.Int("offset", offset),
-		zap.Int("limit", limit),
-		zap.Int("total", total),
-		zap.Int("nextOffset", nextOffset),
-		zap.Int("currentPage", currentPage),
+// ParseContentPaginationToken parses token for content discovery API.
+func ParseContentPaginationToken(pToken *pagination.Token) (int, string, int, error) {
+	var (
+		page            = 1
+		pagingRequestId = ""
+		lastPage        = 0
 	)
 
-	// Emergency safety check: prevent infinite pagination
-	if currentPage >= MaxPagesPerSync {
-		logger.Warn("GetSimpleNextToken: pagination safety limit reached",
-			zap.Int("currentPage", currentPage),
-			zap.Int("maxPagesPerSync", MaxPagesPerSync),
-			zap.Int("totalUsersProcessed", offset),
-		)
-		return "" // Force pagination to stop
+	if pToken != nil && pToken.Token != "" {
+		var parsed ContentPagination
+		err := json.Unmarshal([]byte(pToken.Token), &parsed)
+		if err != nil {
+			return 0, "", 0, err
+		}
+		page = parsed.Page
+		pagingRequestId = parsed.PagingRequestId
+		lastPage = parsed.LastPage
 	}
 
-	if nextOffset >= total {
-		logger.Debug("GetSimpleNextToken: pagination complete",
-			zap.Int("nextOffset", nextOffset),
-			zap.Int("total", total),
-			zap.Int("totalPages", currentPage),
+	return page, pagingRequestId, lastPage, nil
+}
+
+// GetContentNextToken generates next token for content discovery API.
+func GetContentNextToken(currentPage, lastPage int, pagingRequestId string) string {
+	logger := zap.L()
+	nextPage := currentPage + 1
+
+	if nextPage > lastPage {
+		logger.Debug("GetContentNextToken: pagination complete",
+			zap.Int("currentPage", currentPage),
+			zap.Int("lastPage", lastPage),
 		)
 		return ""
 	}
 
-	bytes, err := json.Marshal(
-		SimplePagination{
-			Offset: nextOffset,
-		},
-	)
+	bytes, err := json.Marshal(ContentPagination{
+		Page:            nextPage,
+		PagingRequestId: pagingRequestId,
+		LastPage:        lastPage,
+	})
 	if err != nil {
-		logger.Error("GetSimpleNextToken: failed to marshal pagination token",
-			zap.Int("nextOffset", nextOffset),
+		logger.Error("GetContentNextToken: failed to marshal pagination token",
+			zap.Int("currentPage", currentPage),
 			zap.Error(err),
 		)
 		return ""
 	}
 
-	nextToken := string(bytes)
-	logger.Debug("GetSimpleNextToken: token generated",
-		zap.String("nextToken", nextToken),
-		zap.Int("nextPage", currentPage+1),
-		zap.Float64("progressPercent", float64(nextOffset)/float64(total)*100),
-	)
+	return string(bytes)
+}
 
-	return nextToken
+// ParseLinkHeader extracts lastPage from link header rel="last" section.
+func ParseLinkHeader(linkHeader string) (int, error) {
+	logger := zap.L()
+
+	logger.Debug("ParseLinkHeader called", zap.String("linkHeader", linkHeader))
+
+	pageRegex := regexp.MustCompile(`page="(\d+)"`)
+	relRegex := regexp.MustCompile(`rel="([^"]+)"`)
+
+	matches := pageRegex.FindAllStringSubmatch(linkHeader, -1)
+	relMatches := relRegex.FindAllStringSubmatch(linkHeader, -1)
+
+	for i, match := range matches {
+		if len(match) < 2 || i >= len(relMatches) || len(relMatches[i]) < 2 {
+			continue
+		}
+
+		pageNum, err := strconv.Atoi(match[1])
+		if err != nil {
+			continue
+		}
+
+		rel := relMatches[i][1]
+		if strings.Contains(rel, "last") {
+			logger.Debug("ParseLinkHeader: found lastPage",
+				zap.Int("lastPage", pageNum),
+				zap.String("rel", rel),
+			)
+			return pageNum, nil
+		}
+	}
+
+	logger.Error("ParseLinkHeader: no rel=last found in link header")
+	return 0, fmt.Errorf("no rel=last found in link header")
 }
