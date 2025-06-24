@@ -39,7 +39,7 @@ func courseResource(ctx context.Context, course client.Course, parentResourceID 
 		l.Debug("Skipping inactive course", zap.String("courseId", course.Id))
 		return nil, nil
 	}
-	if course.ContentType.PercipioType != "COURSE" && course.ContentType.PercipioType != "ASSESMENT" {
+	if course.ContentType.PercipioType != "COURSE" && course.ContentType.PercipioType != "ASSESSMENT" {
 		l.Debug("Skipping non-course content", zap.String("courseId", course.Id), zap.String("contentType", course.ContentType.PercipioType))
 		return nil, nil
 	}
