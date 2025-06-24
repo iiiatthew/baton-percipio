@@ -6,6 +6,7 @@
 *.dylib
 *.c1z
 private/
+local_only/
 
 # Test binary, built with `go test -c`
 *.test
