@@ -11,17 +11,31 @@ import (
 	"go.uber.org/zap"
 )
 
+// UserPagination struct holds the state for standard offset-based pagination.
+// It is used by the user management API endpoints.
+// It holds the `Offset` field, representing the starting point for the next page of results.
+// This structure organizes the pagination token for APIs that use a simple offset and limit system.
+// Instances are serialized into a JSON string to form the `pToken.Token` for the next page request.
 type UserPagination struct {
 	Offset int `json:"offset"`
 }
 
+// ContentPagination struct holds the state for the non-standard, stateful content discovery pagination.
+// It is required by the `/catalog-content` endpoint.
+// It holds fields such as `Offset`, `PagingRequestId`, and `FinalOffset` to manage the complex pagination flow.
+// This structure organizes the pagination token for the content API, which requires a unique ID for subsequent requests.
+// Instances are serialized into a JSON string to maintain state between paginated calls.
 type ContentPagination struct {
 	Offset          int    `json:"offset"`
 	PagingRequestId string `json:"pagingRequestId"`
 	FinalOffset     int    `json:"finalOffset"`
 }
 
-// ParseUserPaginationToken parses token for user management API.
+// ParseUserPaginationToken function decodes the pagination token for the user management API.
+// It implements the token parsing required by any user-related resource syncer.
+// The function deserializes the JSON pagination token from the SDK's `pToken` and extracts the next offset.
+// Which allows the connector to resume pagination from where the previous API call left off.
+// This implementation is aligned with standard baton-sdk pagination patterns.
 func ParseUserPaginationToken(pToken *pagination.Token) (int, int, error) {
 	logger := zap.L()
 
@@ -68,7 +82,11 @@ func ParseUserPaginationToken(pToken *pagination.Token) (int, int, error) {
 	return offset, limit, nil
 }
 
-// GetUserNextToken generates next token for user management API.
+// GetUserNextToken function generates the next pagination token for the user management API.
+// It implements the token generation for standard offset-based pagination.
+// The function calculates the next offset and serializes it into a `UserPagination` JSON string.
+// Which creates the token needed by the baton-sdk to request the subsequent page of users.
+// This implementation returns an empty string when the last page is reached, signaling the end of pagination.
 func GetUserNextToken(offset, limit, total int) string {
 	logger := zap.L()
 	nextOffset := offset + limit
@@ -105,7 +123,11 @@ func GetUserNextToken(offset, limit, total int) string {
 	return nextToken
 }
 
-// ParseContentPaginationToken parses token for content discovery API.
+// ParseContentPaginationToken function decodes the pagination token for the content discovery API.
+// It implements the token parsing for Percipio's non-standard, stateful content pagination.
+// The function deserializes the JSON pagination token and extracts the `Offset`, `PagingRequestId`, and `FinalOffset`.
+// Which allows the connector to maintain the complex state required between calls to the content endpoint.
+// This implementation is specific to the unique requirements of the `/catalog-content` API.
 func ParseContentPaginationToken(pToken *pagination.Token) (int, string, int, error) {
 	var (
 		offset          = 0
@@ -127,7 +149,11 @@ func ParseContentPaginationToken(pToken *pagination.Token) (int, string, int, er
 	return offset, pagingRequestId, finalOffset, nil
 }
 
-// GetContentNextToken generates next token for content discovery API.
+// GetContentNextToken function generates the next pagination token for the content discovery API.
+// It implements the token generation for Percipio's non-standard, stateful content pagination.
+// The function calculates the next offset and serializes it along with the required `PagingRequestId` and `FinalOffset` into a JSON string.
+// Which creates the stateful token needed to request the subsequent page of content.
+// This implementation returns an empty string when the final offset is reached, signaling the end of pagination.
 func GetContentNextToken(currentOffset, limit, finalOffset int, pagingRequestId string) string {
 	logger := zap.L()
 	nextOffset := currentOffset + limit
@@ -156,7 +182,11 @@ func GetContentNextToken(currentOffset, limit, finalOffset int, pagingRequestId 
 	return string(bytes)
 }
 
-// ParseLinkHeader extracts finalOffset from link header rel="last" section.
+// ParseLinkHeader function extracts the final offset from a `Link` HTTP header.
+// It implements the parsing of the `rel="last"` URL, which is a specific requirement of the content discovery API's first response.
+// The function uses a regular expression to find the `rel="last"` URL, parses it, and extracts the `offset` query parameter.
+// Which is the only mechanism the API provides to determine the total number of content items for pagination.
+// This implementation is a crucial helper for initiating the stateful content pagination flow.
 func ParseLinkHeader(linkHeader string) (int, error) {
 	logger := zap.L()
 
@@ -164,7 +194,6 @@ func ParseLinkHeader(linkHeader string) (int, error) {
 		zap.String("linkHeader", linkHeader),
 	)
 
-	// Find the rel="last" section in the link header
 	lastLinkRegex := regexp.MustCompile(`<([^>]+)>;\s*[^,]*rel="last"`)
 	matches := lastLinkRegex.FindStringSubmatch(linkHeader)
 
@@ -176,7 +205,6 @@ func ParseLinkHeader(linkHeader string) (int, error) {
 	lastURL := matches[1]
 	logger.Debug("ParseLinkHeader: found rel=last URL", zap.String("lastURL", lastURL))
 
-	// Parse the URL to extract offset parameter
 	parsedURL, err := url.Parse(lastURL)
 	if err != nil {
 		logger.Error("ParseLinkHeader: failed to parse last URL", zap.String("lastURL", lastURL), zap.Error(err))

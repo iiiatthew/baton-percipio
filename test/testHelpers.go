@@ -52,6 +52,8 @@ func FixturesServer() *httptest.Server {
 				var filename string
 				routeUrl := request.URL.String()
 				switch {
+				case strings.Contains(routeUrl, "search-content"):
+					filename = "../../test/fixtures/search_content.json"
 				case strings.Contains(routeUrl, "report-requests/learning-activity"):
 					filename = "../../test/fixtures/reportStatus0.json"
 				case strings.Contains(routeUrl, "report-requests/"):

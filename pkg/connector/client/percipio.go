@@ -21,6 +21,7 @@ import (
 
 const (
 	ApiPathCoursesList            = "/content-discovery/v2/organizations/%s/catalog-content"
+	ApiPathSearchContent          = "/content-discovery/v1/organizations/%s/search-content"
 	ApiPathLearningActivityReport = "/reporting/v1/organizations/%s/report-requests/learning-activity"
 	ApiPathReport                 = "/reporting/v1/organizations/%s/report-requests/%s"
 	ApiPathUsersList              = "/user-management/v1/organizations/%s/users"
@@ -31,6 +32,11 @@ const (
 	ReportLookBackDefault         = 10 * time.Hour * 24 * 365 // 10 years
 )
 
+// Client struct manages all communication with the Percipio API.
+// It is used by the connector to abstract away the details of HTTP requests and response handling.
+// It holds fields such as baseUrl, bearerToken, and organizationId for authenticating and targeting API calls.
+// This structure organizes API client configuration and stateful data like ReportStatus for multi-step report generation.
+// Instances are typically created by the New function and populated with configuration from the connector.
 type Client struct {
 	baseUrl        *url.URL
 	bearerToken    string
@@ -40,6 +46,11 @@ type Client struct {
 	wrapper        *uhttp.BaseHttpClient
 }
 
+// New function creates and initializes a new Percipio API Client.
+// It implements the instantiation of the API client required by the connector to interact with the Percipio API.
+// The client is created by configuring a `uhttp.Client` from the baton-sdk, parsing the provided base URL, and populating the Client struct with authentication details.
+// Which provides a centralized and consistent method for creating a ready-to-use API client.
+// This implementation aligns with SDK patterns by using `uhttp.NewClient` for robust, logged HTTP communication.
 func New(
 	ctx context.Context,
 	baseUrl string,
@@ -76,16 +87,22 @@ func New(
 	}, nil
 }
 
+// getTotalCount function extracts the total result count from an HTTP response.
+// It implements the parsing of the `x-total-count` header, which is expected from Percipio's paginated API endpoints.
+// The function reads the `HeaderNameTotalCount` constant value from the response header and converts it to an integer.
+// Which provides the total number of available records, a crucial piece of information for managing pagination logic.
+// This implementation is a straightforward helper to centralize a common API-specific parsing task.
 func getTotalCount(response *http.Response) (int, error) {
 	totalString := response.Header.Get(HeaderNameTotalCount)
 	return strconv.Atoi(totalString)
 }
 
-// GetUsers returns
-// - a page of users
-// - the reported total number of users that match the filter criteria
-// - any ratelimit data
-// - an error.
+// GetUsers method fetches a single page of user resources from the Percipio API.
+// It implements the user data retrieval operation required by the user resource syncer.
+// The method builds a query with offset and limit parameters and calls the internal `get` helper
+// to execute the request against the `ApiPathUsersList` endpoint.
+// Which enables the connector to paginate through the entire set of users in the Percipio tenant.
+// This implementation encapsulates the logic for interacting with the user management endpoint.
 func (c *Client) GetUsers(
 	ctx context.Context,
 	offset int,
@@ -114,8 +131,11 @@ func (c *Client) GetUsers(
 	return target, total, ratelimitData, nil
 }
 
-// GetCourses fetches courses using offset-based pagination.
-// Returns courses, pagingRequestId, finalOffset, ratelimit, error.
+// GetCourses method fetches a single page of course resources using Percipio's specialized catalog pagination.
+// It implements the content data retrieval operation required by the course resource syncer for a full sync.
+// The method manages a stateful pagination flow by sending an `offset` and `limit`, and then using a `pagingRequestId` returned in the first response for all subsequent requests.
+// Which is the core operation for retrieving all available course and assessment resources from the Percipio tenant.
+// This implementation is tailored to the non-standard pagination of the `/catalog-content` endpoint.
 func (c *Client) GetCourses(
 	ctx context.Context,
 	offset int,
@@ -128,13 +148,11 @@ func (c *Client) GetCourses(
 	*v2.RateLimitDescription,
 	error,
 ) {
-	// Always use offset/max parameters for all calls
 	query := map[string]interface{}{
 		"max":    limit,
 		"offset": offset,
 	}
 
-	// Add pagingRequestId for subsequent calls
 	if pagingRequestId != "" {
 		query["pagingRequestId"] = pagingRequestId
 	}
@@ -150,7 +168,6 @@ func (c *Client) GetCourses(
 
 	var finalOffset int
 	if pagingRequestId == "" {
-		// First call: parse link header to get finalOffset
 		linkHeader := response.Header.Get("link")
 		if linkHeader != "" {
 			finalOffset, err = ParseLinkHeader(linkHeader)
@@ -159,14 +176,45 @@ func (c *Client) GetCourses(
 			}
 		}
 	} else {
-		// Subsequent calls: finalOffset not needed from response
 		finalOffset = 0
 	}
 
 	return target, newPagingRequestId, finalOffset, ratelimitData, nil
 }
 
-// GenerateLearningActivityReport makes a post request to the API asking it to start generating a report. We'll need to then poll a _different_ endpoint to get the actual report data.
+// SearchContentByID function searches for a single course or assessment by its unique ID.
+// It implements a more targeted content retrieval method required for the limited-courses sync feature.
+// The function constructs a GET request to the `/search-content` endpoint using the content ID as a query and filters for COURSE and ASSESSMENT types.
+// Which provides an efficient way to fetch specific content items without paginating through the entire catalog.
+// This implementation makes a separate API call for each ID because the Percipio search API may return unexpected or overly broad results if more than one ID is queried at a time.
+func (c *Client) SearchContentByID(
+	ctx context.Context,
+	courseID string,
+) (
+	[]Course,
+	*v2.RateLimitDescription,
+	error,
+) {
+	query := map[string]interface{}{
+		"q":          courseID,
+		"typeFilter": "COURSE,ASSESSMENT",
+	}
+
+	var target []Course
+	response, ratelimitData, err := c.get(ctx, ApiPathSearchContent, query, &target)
+	if err != nil {
+		return nil, ratelimitData, err
+	}
+	defer response.Body.Close()
+
+	return target, ratelimitData, nil
+}
+
+// GenerateLearningActivityReport method initiates the creation of a learning activity report.
+// It implements the first step of the asynchronous report generation process required by the connector to fetch grants.
+// The method sends a POST request to the `ApiPathLearningActivityReport` endpoint with a lookback period, which triggers a background job on the Percipio service.
+// Which is the only way the connector can access data about user course assignments, completions, and progress.
+// This implementation stores the returned report ID in the `c.ReportStatus` field, which is essential for the subsequent polling step.
 func (c *Client) GenerateLearningActivityReport(
 	ctx context.Context,
 ) (
@@ -192,12 +240,17 @@ func (c *Client) GenerateLearningActivityReport(
 	}
 	defer response.Body.Close()
 
-	// Should include ID and "PENDING".
 	c.ReportStatus = target
 
 	return ratelimitData, nil
 }
 
+// pollLearningActivityReport method polls a report URL until the report is successfully generated.
+// It implements the polling logic for the asynchronous report generation process.
+// The function makes repeated GET requests to the report URL until the status is no longer "IN_PROGRESS".
+// Which is necessary because the initial report generation request only returns a job ID, not the final data.
+// This implementation includes a custom retry loop and handles the API's unusual behavior
+// of returning different data structures for the same endpoint.
 func (c *Client) pollLearningActivityReport(ctx context.Context, reportUrl string) ([]byte, *v2.RateLimitDescription, error) {
 	var ratelimitData *v2.RateLimitDescription
 
@@ -217,7 +270,6 @@ func (c *Client) pollLearningActivityReport(ctx context.Context, reportUrl strin
 		}
 
 		bodyBytes, err := io.ReadAll(resp.Body)
-		// We can ignore this error and proceed with parsing the body.
 		if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) {
 			l.Error("error reading response body", zap.Error(err))
 			_ = resp.Body.Close()
@@ -225,7 +277,6 @@ func (c *Client) pollLearningActivityReport(ctx context.Context, reportUrl strin
 		}
 		_ = resp.Body.Close()
 
-		// Trim whitespace to check the first character.
 		trimmedBody := bytes.TrimSpace(bodyBytes)
 		if len(trimmedBody) == 0 {
 			l.Warn("empty response body from percipio api, retrying...")
@@ -233,19 +284,15 @@ func (c *Client) pollLearningActivityReport(ctx context.Context, reportUrl strin
 			continue
 		}
 
-		// If the response is a JSON array, it's the report.
 		if trimmedBody[0] == '[' {
 			return trimmedBody, ratelimitData, nil
 		}
 
-		// If the response is a JSON object, it's a status update.
 		if trimmedBody[0] == '{' {
 			var reportStatus ReportStatus
 			err = json.Unmarshal(trimmedBody, &reportStatus)
 			if err != nil {
 				l.Error("error unmarshalling report status", zap.Error(err), zap.String("body", string(trimmedBody)))
-				// If we can't unmarshal the status, it might be the report data, but it started with a '{'.
-				// This is an unexpected state. It is safer to return an error than to return potentially invalid data.
 				return nil, ratelimitData, fmt.Errorf("failed to unmarshal report status object: %w", err)
 			}
 
@@ -260,17 +307,20 @@ func (c *Client) pollLearningActivityReport(ctx context.Context, reportUrl strin
 				continue
 			}
 
-			// Any other status is treated as a failure.
 			return nil, ratelimitData, fmt.Errorf("report generation failed with status: %s", reportStatus.Status)
 		}
 
-		// If it's neither, the response is unexpected.
 		return nil, ratelimitData, fmt.Errorf("unexpected report response format")
 	}
 
 	return nil, ratelimitData, fmt.Errorf("report polling timed out")
 }
 
+// GetLearningActivityReport method retrieves the completed learning activity report.
+// It implements the final step of the grant data retrieval process, required by the course grant builder.
+// The method first calls `pollLearningActivityReport` to wait for and receive the raw report data, then unmarshals it into a `Report` struct.
+// Which makes the complete set of user-course relationships available to the connector.
+// This implementation finishes the asynchronous workflow by loading the report data into the `StatusesStore` for efficient grant lookups.
 func (c *Client) GetLearningActivityReport(
 	ctx context.Context,
 ) (

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "1a3a3f54-b601-4d45-a234-038c980ee20f",
+    "contentType": {
+      "percipioType": "COURSE",
+      "category": "COURSE",
+      "displayLabel": "Course",
+      "source": "Skillsoft"
+    },
+    "localeCodes": ["en"],
+    "localizedMetadata": [
+      {
+        "localeCode": "en",
+        "title": "Case Studies: Successful Data Privacy Implementations",
+        "description": "In this course, you'll learn about the key factors in successful data privacy implementation."
+      }
+    ],
+    "xapiActivityId": "https://xapi.percipio.com/xapi/course/1a3a3f54-b601-4d45-a234-038c980ee20f",
+    "xapiActivityTypeId": "http://adlnet.gov/expapi/activities/course",
+    "link": "https://share.percipio.com/cd/xUfr3rbr4p2J7",
+    "imageUrl": "https://cdn2.percipio.com/public/c/course/images/saved/1a3a3f54-b601-4d45-a234-038c980ee20f/c8527b04-6f13-4385-ac8c-a9d149162532.jpg",
+    "alternateImageUrl": "https://cdn2.percipio.com/public/c/course/images/saved/1a3a3f54-b601-4d45-a234-038c980ee20f/c8527b04-6f13-4385-ac8c-a9d149162532.jpg",
+    "duration": "PT5M23S",
+    "by": [],
+    "expertiseLevels": [],
+    "modalities": ["WATCH"],
+    "associations": {
+      "channels": [
+        {
+          "id": "3717321f-1656-4de7-8779-6ce90abd925d",
+          "title": "Data and Analytics at Work",
+          "link": "https://share.percipio.com/cd/87O-UVBHl58E_"
+        }
+      ],
+      "parent": null
+    }
+  }
+]

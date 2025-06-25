@@ -49,37 +49,25 @@ func TestCoursesList(t *testing.T) {
 		}
 
 		require.NotNil(t, resources)
-		require.Len(t, resources, 2)
+		require.Len(t, resources, 3)
 		require.NotEmpty(t, resources[0].Id)
 	})
 
-	t.Run("should get limited courses", func(t *testing.T) {
-		limitCourseID := "00000000-0000-0000-0000-000000000000"
+	t.Run("should get limited courses using the search endpoint", func(t *testing.T) {
+		limitCourseID := "1a3a3f54-b601-4d45-a234-038c980ee20f"
 		limitCourses := mapset.NewSet(limitCourseID)
 		c := newCourseBuilder(percipioClient, limitCourses)
-		resources := make([]*v2.Resource, 0)
-		pToken := pagination.Token{
-			Token: "",
-			Size:  1,
-		}
-		for {
-			nextResources, nextToken, listAnnotations, err := c.List(ctx, nil, &pToken)
-			resources = append(resources, nextResources...)
 
-			require.Nil(t, err)
-			test.AssertNoRatelimitAnnotations(t, listAnnotations)
-			if nextToken == "" {
-				break
-			}
-
-			pToken.Token = nextToken
-		}
+		resources, nextToken, listAnnotations, err := c.List(ctx, nil, &pagination.Token{})
+		require.Nil(t, err)
+		test.AssertNoRatelimitAnnotations(t, listAnnotations)
+		require.Empty(t, nextToken, "next token should be empty when searching by id")
 
 		require.NotNil(t, resources)
-		require.NotEmpty(t, resources)
-		for _, resource := range resources {
-			assert.Equal(t, limitCourseID, resource.Id.Resource, "All returned resources should have the limited course ID")
-		}
+		require.Len(t, resources, 1)
+
+		assert.Equal(t, limitCourseID, resources[0].Id.Resource)
+		assert.Equal(t, "Case Studies: Successful Data Privacy Implementations", resources[0].DisplayName)
 	})
 
 	t.Run("should list grants", func(t *testing.T) {
