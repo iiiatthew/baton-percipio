@@ -9,6 +9,8 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"go.uber.org/zap"
 )
 
 // Connector struct is the main entry point for the Percipio connector.
@@ -73,7 +75,13 @@ func New(
 	organizationID string,
 	token string,
 	limitCourses []string,
+	forkVersion string,
 ) (*Connector, error) {
+	l := ctxzap.Extract(ctx)
+	l.Info(
+		"starting baton-percipio connector",
+		zap.String("fork_version", forkVersion),
+	)
 	percipioClient, err := client.New(
 		ctx,
 		client.BaseApiUrl,

@@ -3,6 +3,7 @@ package connector
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/conductorone/baton-percipio/pkg/connector/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -17,7 +18,6 @@ import (
 )
 
 const (
-	assignedEntitlement   = "assigned"
 	completedEntitlement  = "completed"
 	inProgressEntitlement = "in_progress"
 )
@@ -113,20 +113,28 @@ func (o *courseBuilder) List(
 	annotations.Annotations,
 	error,
 ) {
-	logger := ctxzap.Extract(ctx)
-	logger.Debug("Starting Courses List", zap.String("token", pToken.Token))
+	l := ctxzap.Extract(ctx)
+	l.Debug("Starting Courses List", zap.String("token", pToken.Token))
 
 	outputResources := make([]*v2.Resource, 0)
 	var outputAnnotations annotations.Annotations
 
 	// If limitCourses is set, we use the search endpoint instead of paginating
 	if o.limitCourses != nil && o.limitCourses.Cardinality() > 0 {
+		l.Info("**** limited-courses flag set - calling SearchContentByID method")
+
 		courseIDs := o.limitCourses.ToSlice()
+		var formattedCourses []string
+		for i, id := range courseIDs {
+			formattedCourses = append(formattedCourses, fmt.Sprintf("%d: %s", i+1, id))
+		}
+		l.Info(fmt.Sprintf("**** Searching for %d Courses: %s", len(courseIDs), strings.Join(formattedCourses, ", ")))
+
 		for _, courseID := range courseIDs {
 			courses, ratelimitData, err := o.client.SearchContentByID(ctx, courseID)
 			outputAnnotations.WithRateLimiting(ratelimitData)
 			if err != nil {
-				logger.Warn("failed to find course by id", zap.Error(err), zap.String("courseID", courseID))
+				l.Warn("failed to find course by id", zap.Error(err), zap.String("courseID", courseID))
 				continue
 			}
 
@@ -147,6 +155,8 @@ func (o *courseBuilder) List(
 
 		return outputResources, "", outputAnnotations, nil
 	}
+
+	l.Info("**** limited-courses flag not set - calling default GetCourses method")
 
 	offset, pagingRequestId, finalOffset, err := client.ParseContentPaginationToken(pToken)
 	if err != nil {
@@ -170,7 +180,7 @@ func (o *courseBuilder) List(
 		nextOffset = offset + 1000
 	}
 
-	logger.Info("Content pagination progress",
+	l.Info("Content pagination progress",
 		zap.Int("currentOffset", offset),
 		zap.Int("finalOffset", finalOffset),
 		zap.Bool("hasMore", hasMore),
@@ -198,7 +208,7 @@ func (o *courseBuilder) List(
 	nextToken := client.GetContentNextToken(offset, 1000, finalOffset, newPagingRequestId)
 
 	if nextToken == "" {
-		logger.Info("Content pagination complete",
+		l.Info("Content pagination complete",
 			zap.Int("finalOffset", finalOffset),
 			zap.String("explanation", "Reached final offset, pagination stopped"),
 		)
@@ -223,13 +233,6 @@ func (o *courseBuilder) Entitlements(
 	error,
 ) {
 	return []*v2.Entitlement{
-		entitlement.NewAssignmentEntitlement(
-			resource,
-			assignedEntitlement,
-			entitlement.WithGrantableTo(userResourceType),
-			entitlement.WithDisplayName(fmt.Sprintf("Course %s %s", resource.DisplayName, assignedEntitlement)),
-			entitlement.WithDescription(fmt.Sprintf("Assigned course %s in Percipio", resource.DisplayName)),
-		),
 		entitlement.NewAssignmentEntitlement(
 			resource,
 			completedEntitlement,
