@@ -170,7 +170,7 @@ func (c *Client) GetCourses(
 	if pagingRequestId == "" {
 		linkHeader := response.Header.Get("link")
 		if linkHeader != "" {
-			finalOffset, err = ParseLinkHeader(linkHeader)
+			finalOffset, err = ParseLinkHeader(ctx, linkHeader)
 			if err != nil {
 				return nil, "", 0, ratelimitData, fmt.Errorf("failed to parse link header: %w", err)
 			}
@@ -251,6 +251,9 @@ func (c *Client) GenerateLearningActivityReport(
 // Which is necessary because the initial report generation request only returns a job ID, not the final data.
 // This implementation includes a custom retry loop and handles the API's unusual behavior
 // of returning different data structures for the same endpoint.
+// Here we're use the native Go net/http package instead of uhttp ONLY for the report polling function as uhttp
+// seems to ignore Cache-Control: no-cache headers and kept returning IN_PROGRESS for the report polling
+// even when the report was completed and available during testing.
 func (c *Client) pollLearningActivityReport(ctx context.Context, reportUrl string) ([]byte, *v2.RateLimitDescription, error) {
 	var ratelimitData *v2.RateLimitDescription
 

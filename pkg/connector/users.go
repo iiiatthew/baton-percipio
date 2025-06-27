@@ -153,7 +153,7 @@ func (o *userBuilder) List(
 		outputResources = append(outputResources, userResource0)
 	}
 
-	nextToken := client.GetUserNextToken(offset, limit, total)
+	nextToken := client.GetUserNextToken(ctx, offset, limit, total)
 
 	return outputResources, nextToken, outputAnnotations, nil
 }

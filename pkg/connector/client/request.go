@@ -9,7 +9,6 @@ import (
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
-	"go.uber.org/zap"
 )
 
 // getUrl method constructs a full URL for an API request.
@@ -125,9 +124,6 @@ func (c *Client) doRequest(
 	}
 
 	url := c.getUrl(path, queryParameters)
-
-	logger := zap.L()
-	logger.Info(fmt.Sprintf("*** Making API Call: %s %s", method, url.String()))
 
 	request, err := c.wrapper.NewRequest(ctx, method, url, options...)
 	if err != nil {

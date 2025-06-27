@@ -3,7 +3,6 @@ package connector
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/conductorone/baton-percipio/pkg/connector/client"
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -121,15 +120,7 @@ func (o *courseBuilder) List(
 
 	// If limitCourses is set, we use the search endpoint instead of paginating
 	if o.limitCourses != nil && o.limitCourses.Cardinality() > 0 {
-		l.Info("**** limited-courses flag set - calling SearchContentByID method")
-
 		courseIDs := o.limitCourses.ToSlice()
-		var formattedCourses []string
-		for i, id := range courseIDs {
-			formattedCourses = append(formattedCourses, fmt.Sprintf("%d: %s", i+1, id))
-		}
-		l.Info(fmt.Sprintf("**** Searching for %d Courses: %s", len(courseIDs), strings.Join(formattedCourses, ", ")))
-
 		for _, courseID := range courseIDs {
 			courses, ratelimitData, err := o.client.SearchContentByID(ctx, courseID)
 			outputAnnotations.WithRateLimiting(ratelimitData)
@@ -156,9 +147,7 @@ func (o *courseBuilder) List(
 		return outputResources, "", outputAnnotations, nil
 	}
 
-	l.Info("**** limited-courses flag not set - calling default GetCourses method")
-
-	offset, pagingRequestId, finalOffset, err := client.ParseContentPaginationToken(pToken)
+	offset, pagingRequestId, finalOffset, err := client.ParseContentPaginationToken(ctx, pToken)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -205,7 +194,7 @@ func (o *courseBuilder) List(
 		outputResources = append(outputResources, resource)
 	}
 
-	nextToken := client.GetContentNextToken(offset, 1000, finalOffset, newPagingRequestId)
+	nextToken := client.GetContentNextToken(ctx, offset, 1000, finalOffset, newPagingRequestId)
 
 	if nextToken == "" {
 		l.Info("Content pagination complete",

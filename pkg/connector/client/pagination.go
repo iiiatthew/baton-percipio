@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -8,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/conductorone/baton-sdk/pkg/pagination"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 )
 
@@ -87,11 +89,11 @@ func ParseUserPaginationToken(pToken *pagination.Token) (int, int, error) {
 // The function calculates the next offset and serializes it into a `UserPagination` JSON string.
 // Which creates the token needed by the baton-sdk to request the subsequent page of users.
 // This implementation returns an empty string when the last page is reached, signaling the end of pagination.
-func GetUserNextToken(offset, limit, total int) string {
-	logger := zap.L()
+func GetUserNextToken(ctx context.Context, offset, limit, total int) string {
+	l := ctxzap.Extract(ctx)
 	nextOffset := offset + limit
 
-	logger.Debug("GetUserNextToken called",
+	l.Debug("GetUserNextToken called",
 		zap.Int("offset", offset),
 		zap.Int("limit", limit),
 		zap.Int("total", total),
@@ -99,7 +101,7 @@ func GetUserNextToken(offset, limit, total int) string {
 	)
 
 	if nextOffset >= total {
-		logger.Debug("GetUserNextToken: pagination complete",
+		l.Debug("GetUserNextToken: pagination complete",
 			zap.Int("nextOffset", nextOffset),
 			zap.Int("total", total),
 		)
@@ -108,7 +110,7 @@ func GetUserNextToken(offset, limit, total int) string {
 
 	bytes, err := json.Marshal(UserPagination{Offset: nextOffset})
 	if err != nil {
-		logger.Error("GetUserNextToken: failed to marshal pagination token",
+		l.Error("GetUserNextToken: failed to marshal pagination token",
 			zap.Int("nextOffset", nextOffset),
 			zap.Error(err),
 		)
@@ -116,7 +118,7 @@ func GetUserNextToken(offset, limit, total int) string {
 	}
 
 	nextToken := string(bytes)
-	logger.Debug("GetUserNextToken: token generated",
+	l.Debug("GetUserNextToken: token generated",
 		zap.String("nextToken", nextToken),
 	)
 
@@ -128,7 +130,8 @@ func GetUserNextToken(offset, limit, total int) string {
 // The function deserializes the JSON pagination token and extracts the `Offset`, `PagingRequestId`, and `FinalOffset`.
 // Which allows the connector to maintain the complex state required between calls to the content endpoint.
 // This implementation is specific to the unique requirements of the `/catalog-content` API.
-func ParseContentPaginationToken(pToken *pagination.Token) (int, string, int, error) {
+func ParseContentPaginationToken(ctx context.Context, pToken *pagination.Token) (int, string, int, error) {
+	l := ctxzap.Extract(ctx)
 	var (
 		offset          = 0
 		pagingRequestId = ""
@@ -139,12 +142,22 @@ func ParseContentPaginationToken(pToken *pagination.Token) (int, string, int, er
 		var parsed ContentPagination
 		err := json.Unmarshal([]byte(pToken.Token), &parsed)
 		if err != nil {
+			l.Error("ParseContentPaginationToken: failed to unmarshal token",
+				zap.String("token", pToken.Token),
+				zap.Error(err),
+			)
 			return 0, "", 0, err
 		}
 		offset = parsed.Offset
 		pagingRequestId = parsed.PagingRequestId
 		finalOffset = parsed.FinalOffset
 	}
+
+	l.Debug("ParseContentPaginationToken result",
+		zap.Int("offset", offset),
+		zap.String("pagingRequestId", pagingRequestId),
+		zap.Int("finalOffset", finalOffset),
+	)
 
 	return offset, pagingRequestId, finalOffset, nil
 }
@@ -154,12 +167,12 @@ func ParseContentPaginationToken(pToken *pagination.Token) (int, string, int, er
 // The function calculates the next offset and serializes it along with the required `PagingRequestId` and `FinalOffset` into a JSON string.
 // Which creates the stateful token needed to request the subsequent page of content.
 // This implementation returns an empty string when the final offset is reached, signaling the end of pagination.
-func GetContentNextToken(currentOffset, limit, finalOffset int, pagingRequestId string) string {
-	logger := zap.L()
+func GetContentNextToken(ctx context.Context, currentOffset, limit, finalOffset int, pagingRequestId string) string {
+	l := ctxzap.Extract(ctx)
 	nextOffset := currentOffset + limit
 
 	if nextOffset > finalOffset {
-		logger.Debug("GetContentNextToken: pagination complete",
+		l.Debug("GetContentNextToken: pagination complete",
 			zap.Int("currentOffset", currentOffset),
 			zap.Int("finalOffset", finalOffset),
 		)
@@ -172,12 +185,16 @@ func GetContentNextToken(currentOffset, limit, finalOffset int, pagingRequestId 
 		FinalOffset:     finalOffset,
 	})
 	if err != nil {
-		logger.Error("GetContentNextToken: failed to marshal pagination token",
+		l.Error("GetContentNextToken: failed to marshal pagination token",
 			zap.Int("currentOffset", currentOffset),
 			zap.Error(err),
 		)
 		return ""
 	}
+
+	l.Debug("GetContentNextToken: token generated",
+		zap.String("nextToken", string(bytes)),
+	)
 
 	return string(bytes)
 }
@@ -187,10 +204,10 @@ func GetContentNextToken(currentOffset, limit, finalOffset int, pagingRequestId 
 // The function uses a regular expression to find the `rel="last"` URL, parses it, and extracts the `offset` query parameter.
 // Which is the only mechanism the API provides to determine the total number of content items for pagination.
 // This implementation is a crucial helper for initiating the stateful content pagination flow.
-func ParseLinkHeader(linkHeader string) (int, error) {
-	logger := zap.L()
+func ParseLinkHeader(ctx context.Context, linkHeader string) (int, error) {
+	l := ctxzap.Extract(ctx)
 
-	logger.Info("Content pagination: parsing link header for final offset",
+	l.Info("Content pagination: parsing link header for final offset",
 		zap.String("linkHeader", linkHeader),
 	)
 
@@ -198,32 +215,32 @@ func ParseLinkHeader(linkHeader string) (int, error) {
 	matches := lastLinkRegex.FindStringSubmatch(linkHeader)
 
 	if len(matches) < 2 {
-		logger.Error("ParseLinkHeader: no rel=last found in link header")
+		l.Error("ParseLinkHeader: no rel=last found in link header")
 		return 0, fmt.Errorf("no rel=last found in link header")
 	}
 
 	lastURL := matches[1]
-	logger.Debug("ParseLinkHeader: found rel=last URL", zap.String("lastURL", lastURL))
+	l.Debug("ParseLinkHeader: found rel=last URL", zap.String("lastURL", lastURL))
 
 	parsedURL, err := url.Parse(lastURL)
 	if err != nil {
-		logger.Error("ParseLinkHeader: failed to parse last URL", zap.String("lastURL", lastURL), zap.Error(err))
+		l.Error("ParseLinkHeader: failed to parse last URL", zap.String("lastURL", lastURL), zap.Error(err))
 		return 0, fmt.Errorf("failed to parse last URL: %w", err)
 	}
 
 	offsetStr := parsedURL.Query().Get("offset")
 	if offsetStr == "" {
-		logger.Error("ParseLinkHeader: no offset parameter found in last URL", zap.String("lastURL", lastURL))
+		l.Error("ParseLinkHeader: no offset parameter found in last URL", zap.String("lastURL", lastURL))
 		return 0, fmt.Errorf("no offset parameter found in last URL")
 	}
 
 	finalOffset, err := strconv.Atoi(offsetStr)
 	if err != nil {
-		logger.Error("ParseLinkHeader: failed to parse offset value", zap.String("offsetStr", offsetStr), zap.Error(err))
+		l.Error("ParseLinkHeader: failed to parse offset value", zap.String("offsetStr", offsetStr), zap.Error(err))
 		return 0, fmt.Errorf("failed to parse offset value: %w", err)
 	}
 
-	logger.Info("Content pagination: extracted final offset from link header",
+	l.Info("Content pagination: extracted final offset from link header",
 		zap.String("linkHeader", linkHeader),
 		zap.Int("finalOffset", finalOffset),
 		zap.String("explanation", "Pagination will stop when currentOffset >= finalOffset"),
