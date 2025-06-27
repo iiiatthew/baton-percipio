@@ -6,7 +6,6 @@
 *.dylib
 *.c1z
 
-
 # Test binary, built with `go test -c`
 *.test
 
