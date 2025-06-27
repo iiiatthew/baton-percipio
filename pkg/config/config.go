@@ -37,7 +37,8 @@ var (
 	// marked as mutually exclusive from the username password pair.
 	FieldRelationships = []field.SchemaFieldRelationship{}
 
-	ConfigurationSchema = field.Configuration{
-		Fields: ConfigurationFields,
-	}
+	ConfigurationSchema = field.NewConfiguration(
+		ConfigurationFields,
+		field.WithConstraints(FieldRelationships...),
+	)
 )
